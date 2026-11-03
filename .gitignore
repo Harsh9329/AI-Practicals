@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Java
+*.class
+
+# Editor / Obsidian
+.obsidian/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
