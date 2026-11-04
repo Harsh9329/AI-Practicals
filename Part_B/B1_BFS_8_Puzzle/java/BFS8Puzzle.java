@@ -1,75 +1,98 @@
 import java.util.*;
 
 public class BFS8Puzzle {
+
     static final String GOAL = "123456780";
     static final String START = "136502478";
-    static final int[][] DIRS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    static final int[][] DIRECTIONS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
-    static List<String> neighbours(String state) {
-        List<String> result = new ArrayList<>();
+    // One node = current state + the path taken to reach it
+    static class Node {
+        String state;
+        List<String> path;
+
+        Node(String state, List<String> path) {
+            this.state = state;
+            this.path = path;
+        }
+    }
+
+    static List<String> getNeighbors(String state) {
+        List<String> neighbors = new ArrayList<>();
         int blank = state.indexOf('0');
-        int r = blank / 3, c = blank % 3;
+        int x = blank / 3;
+        int y = blank % 3;
 
-        for (int[] d : DIRS) {
-            int nr = r + d[0], nc = c + d[1];
-            if (nr >= 0 && nr < 3 && nc >= 0 && nc < 3) {
-                char[] a = state.toCharArray();
-                int i = nr * 3 + nc;
-                char tmp = a[blank];
-                a[blank] = a[i];
-                a[i] = tmp;
-                result.add(new String(a));
+        for (int[] d : DIRECTIONS) {
+            int nx = x + d[0];
+            int ny = y + d[1];
+
+            if (nx >= 0 && nx < 3 && ny >= 0 && ny < 3) {
+                char[] next = state.toCharArray();
+                int i = nx * 3 + ny;
+
+                char temp = next[blank];
+                next[blank] = next[i];
+                next[i] = temp;
+
+                neighbors.add(new String(next));
             }
         }
-        return result;
+
+        return neighbors;
     }
 
-    static void show(String state) {
-        for (int i = 0; i < 9; i += 3)
-            System.out.println(state.charAt(i) + " "
-                    + state.charAt(i + 1) + " " + state.charAt(i + 2));
-    }
+    static List<String> bfs(String start) {
+        Queue<Node> queue = new LinkedList<>();
+        Set<String> visited = new HashSet<>();
 
-    public static void main(String[] args) {
-        ArrayDeque<String> queue = new ArrayDeque<>();
-        Map<String, String> parent = new HashMap<>();
-        queue.add(START);
-        parent.put(START, null);
-
-        String found = null;
-        int explored = 0;
+        queue.add(new Node(start, new ArrayList<>()));
+        visited.add(start);
 
         while (!queue.isEmpty()) {
-            String state = queue.poll();
-            explored++;
-            if (state.equals(GOAL)) {
-                found = state;
-                break;
+            Node current = queue.poll();
+
+            if (current.state.equals(GOAL)) {
+                List<String> solution = new ArrayList<>(current.path);
+                solution.add(current.state);
+                return solution;
             }
-            for (String next : neighbours(state)) {
-                if (!parent.containsKey(next)) {
-                    parent.put(next, state);
-                    queue.add(next);
+
+            for (String neighbor : getNeighbors(current.state)) {
+                if (!visited.contains(neighbor)) {
+                    visited.add(neighbor);
+
+                    List<String> newPath = new ArrayList<>(current.path);
+                    newPath.add(current.state);
+
+                    queue.add(new Node(neighbor, newPath));
                 }
             }
         }
 
-        if (found == null) {
-            System.out.println("No solution");
-            return;
+        return null;
+    }
+
+    static void printBoard(String state) {
+        for (int i = 0; i < 9; i += 3) {
+            System.out.println(state.charAt(i) + " "
+                    + state.charAt(i + 1) + " " + state.charAt(i + 2));
         }
+    }
 
-        LinkedList<String> path = new LinkedList<>();
-        for (String s = found; s != null; s = parent.get(s))
-            path.addFirst(s);
+    public static void main(String[] args) {
+        List<String> solution = bfs(START);
 
-        System.out.println("Moves: " + (path.size() - 1)
-                + " | States explored: " + explored);
+        if (solution != null) {
+            System.out.println("\nSolution found in " + (solution.size() - 1) + " moves:\n");
 
-        int step = 0;
-        for (String s : path) {
-            System.out.println("\nStep " + step++);
-            show(s);
+            for (int step = 0; step < solution.size(); step++) {
+                System.out.println("Step " + step);
+                printBoard(solution.get(step));
+                System.out.println();
+            }
+        } else {
+            System.out.println("No solution found.");
         }
     }
 }

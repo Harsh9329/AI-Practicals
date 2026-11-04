@@ -1,37 +1,40 @@
-# B2 - DFS for the Water Jug Problem
+# Water Jug Problem using DFS
 
-CAP_A, CAP_B = 4, 3
-TARGET = 2
+def dfs(jug1, jug2, target):
+    stack = [((0, 0), [])]      # (state, path)
+    visited = {(0, 0)}
 
+    while stack:
+        (x, y), path = stack.pop()
 
-def moves(a, b):
-    """The six legal actions from state (a, b)."""
-    p = min(a, CAP_B - b)       # water poured A -> B
-    q = min(b, CAP_A - a)       # water poured B -> A
-    return [
-        (CAP_A, b, "Fill A"),
-        (a, CAP_B, "Fill B"),
-        (0, b, "Empty A"),
-        (a, 0, "Empty B"),
-        (a - p, b + p, "Pour A to B"),
-        (a + q, b - q, "Pour B to A"),
-    ]
+        # Check if target is reached
+        if x == target or y == target:
+            for action, state in path:
+                print(action, "->", state)
+            print("\nTarget achieved in", len(path), "steps!")
+            return
 
+        # Possible moves: (new state, action name)
+        next_states = [
+            ((jug1, y), "Fill Jug1"),
+            ((x, jug2), "Fill Jug2"),
+            ((0, y), "Empty Jug1"),
+            ((x, 0), "Empty Jug2"),
+            ((max(0, x - (jug2 - y)), min(jug2, y + x)), "Pour Jug1 -> Jug2"),
+            ((min(jug1, x + y), max(0, y - (jug1 - x))), "Pour Jug2 -> Jug1")
+        ]
 
-stack = [((0, 0), [])]          # (state, path so far)
-visited = {(0, 0)}
+        for state, action in next_states:
+            if state not in visited:
+                visited.add(state)
+                stack.append((state, path + [(action, state)]))
 
-while stack:
-    (a, b), path = stack.pop()  # LIFO = depth first
-    if a == TARGET or b == TARGET:
-        for action, state in path:
-            print(action, "->", state)
-        print("Goal reached in", len(path), "steps")
-        break
-
-    for na, nb, action in moves(a, b):
-        if (na, nb) not in visited:
-            visited.add((na, nb))
-            stack.append(((na, nb), path + [(action, (na, nb))]))
-else:
     print("No solution found")
+
+
+# Driver Code
+jug1_capacity = 4
+jug2_capacity = 3
+target = 2
+
+dfs(jug1_capacity, jug2_capacity, target)

@@ -1,23 +1,30 @@
-public class TowerOfHanoi {
-    static int moves = 0;
+import java.util.Scanner;
 
-    static void hanoi(int n, char source, char helper, char target) {
+public class TowerOfHanoi {
+
+    static void towerOfHanoi(int n, char source, char auxiliary, char destination) {
         if (n == 1) {
-            moves++;
-            System.out.println("Move " + moves + ": disk 1 from " + source + " to " + target);
+            System.out.println("Move Disk 1 from " + source + " -> " + destination);
             return;
         }
-        hanoi(n - 1, source, target, helper);
-        moves++;
-        System.out.println("Move " + moves + ": disk " + n + " from " + source + " to " + target);
-        hanoi(n - 1, helper, source, target);
+
+        // Move n-1 disks from source to auxiliary
+        towerOfHanoi(n - 1, source, destination, auxiliary);
+
+        // Move largest disk to destination
+        System.out.println("Move Disk " + n + " from " + source + " -> " + destination);
+
+        // Move n-1 disks from auxiliary to destination
+        towerOfHanoi(n - 1, auxiliary, source, destination);
     }
 
     public static void main(String[] args) {
-        int n = 3;
-        System.out.println("Tower of Hanoi with " + n + " disks");
-        hanoi(n, 'A', 'B', 'C');
-        System.out.println("Total moves: " + moves
-                + " | Formula 2^n-1 = " + ((int) Math.pow(2, n) - 1));
+        Scanner sc = new Scanner(System.in);
+
+        System.out.print("Enter number of disks: ");
+        int n = sc.nextInt();
+
+        System.out.println("\nSteps to solve Tower of Hanoi:\n");
+        towerOfHanoi(n, 'A', 'B', 'C');
     }
 }

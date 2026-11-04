@@ -58,12 +58,11 @@ The agent maintains an internal grid-map (its model of the world) that it update
 
 The grid can be represented as a 2-D array/matrix where:
 
-- `0` = free cell
-- `1` = obstacle
-- `S` = start
-- `G` = goal
+- `'O'` = free cell
+- `'X'` = obstacle
+- start and goal are `(row, column)` tuples
 
-The internal state of the agent is a similarly sized matrix that starts as **Unknown** everywhere except cells the agent has already sensed, and is progressively filled in as the agent explores.
+The internal state of the agent is a similarly sized matrix that starts as **Unknown** (`'?'`) everywhere except cells the agent has already sensed, and is progressively filled in as the agent explores. Sensed free cells are stored as `'O'` and sensed obstacles as `'X'`.
 
 ### Advantage over Simple Reflex Agent
 
@@ -74,8 +73,9 @@ Because the model-based agent remembers previously sensed obstacle information, 
 1. Initialize the grid environment and the agent's internal model (all cells Unknown).
 2. Place the agent at the Start cell; sense the status of adjacent cells and update the internal model.
 3. Repeat until the Goal is reached or no path remains:
-   1. Using the internal model, choose the next move that makes progress toward the goal while avoiding known obstacles (e.g., a simple greedy Manhattan-distance rule, or BFS over the known-free cells).
+   1. Using the internal model, try moves that reduce the distance to the goal first; if those cells are blocked or already visited, fall back to any unvisited free neighbour (a greedy rule with a visited set).
    2. Execute the move; sense new percepts and update the internal model.
+   3. Stop when the goal is reached, when no move is possible, or after 50 steps as a safety cap.
 4. Report the path taken and whether the goal was reached.
 
 ## 8. Diagram
@@ -92,7 +92,7 @@ S . . # . .                                  ? ? ? ? ? ?
 . . . . . G                                  ? ? ? ? ? ?
 ```
 
-The agent starts with mostly `?` (unknown) cells. As it moves, it replaces `?` with `0` (free) or `1` (blocked). It plans on this internal map, not on the real grid.
+The agent starts with mostly `?` (unknown) cells. As it moves, it replaces `?` with `O` (free) or `X` (blocked). Every move is chosen using this internal map, not the real grid.
 
 ## 9. Conclusion
 
@@ -129,74 +129,90 @@ java ModelBasedAgent
 ## 12. Python Code
 
 ```python
-# A2 - Model-Based Agent: Grid Navigation with Obstacles
+# Model-Based Intelligent Agent for Grid Navigation
 
-from collections import deque
+class ModelBasedAgent:
+    def __init__(self, grid, start, goal):
+        self.grid = grid
+        self.position = start
+        self.goal = goal
 
-GRID = [
-    "S...",
-    ".X..",
-    ".X..",
-    "...G"
+        # Internal model: '?' = not sensed yet, 'O' = free, 'X' = obstacle
+        self.model = [['?' for _ in row] for row in grid]
+        self.visited = {start}
+        self.sense()
+
+    def sense(self):
+        x, y = self.position
+        for dx, dy in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < len(self.grid) and 0 <= ny < len(self.grid[0]):
+                self.model[nx][ny] = self.grid[nx][ny]
+
+    def display_grid(self):
+        for row in self.model:
+            print(row)
+        print()
+
+    def move(self):
+        x, y = self.position
+        gx, gy = self.goal
+
+        # First try moves that reduce the distance to the goal
+        moves = []
+        if x < gx:
+            moves.append((x + 1, y))
+        if y < gy:
+            moves.append((x, y + 1))
+        if x > gx:
+            moves.append((x - 1, y))
+        if y > gy:
+            moves.append((x, y - 1))
+
+        # Then try any other neighbour
+        moves += [(x + 1, y), (x, y + 1), (x - 1, y), (x, y - 1)]
+
+        for nx, ny in moves:
+            if 0 <= nx < len(self.grid) and 0 <= ny < len(self.grid[0]):
+                if self.model[nx][ny] != 'X' and (nx, ny) not in self.visited:
+                    self.position = (nx, ny)
+                    self.visited.add((nx, ny))
+                    self.sense()
+                    return True
+        return False
+
+    def run(self):
+        step = 1
+        while self.position != self.goal and step <= 50:
+            print(f"Step {step}: Current Position = {self.position}")
+            if not self.move():
+                print("No path to the goal.")
+                return
+            step += 1
+
+        print(f"\nGoal Reached at {self.position}")
+
+
+# Grid Environment
+# O = Free Cell
+# X = Obstacle
+
+grid = [
+    ['O', 'O', 'O', 'O'],
+    ['O', 'X', 'O', 'O'],
+    ['O', 'X', 'O', 'O'],
+    ['O', 'O', 'O', 'O']
 ]
-N = 4
-START, GOAL = (0, 0), (3, 3)
-DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]   # up, down, left, right
 
-# model[r][c] = -1 unknown, 0 free, 1 blocked
-model = [[-1] * N for _ in range(N)]
+start = (0, 0)
+goal = (3, 3)
 
+agent = ModelBasedAgent(grid, start, goal)
 
-def sense(r, c):
-    """Sense the current cell and its four neighbours."""
-    for dr, dc in DIRS + [(0, 0)]:
-        nr, nc = r + dr, c + dc
-        if 0 <= nr < N and 0 <= nc < N:
-            model[nr][nc] = 1 if GRID[nr][nc] == "X" else 0
+print("Agent's initial model ('?' = not sensed yet):")
+agent.display_grid()
 
-
-def plan(start):
-    """BFS on the internal model. Unknown cells are treated as free."""
-    queue = deque([start])
-    parent = {start: None}
-
-    while queue:
-        r, c = queue.popleft()
-        if (r, c) == GOAL:
-            path = []
-            while (r, c) != start:
-                path.append((r, c))
-                r, c = parent[(r, c)]
-            return path[::-1]
-
-        for dr, dc in DIRS:
-            nr, nc = r + dr, c + dc
-            if 0 <= nr < N and 0 <= nc < N and (nr, nc) not in parent:
-                if model[nr][nc] != 1:          # free or unknown
-                    parent[(nr, nc)] = (r, c)
-                    queue.append((nr, nc))
-    return []
-
-
-position = START
-sense(*position)
-steps = 0
-
-while position != GOAL:
-    path = plan(position)
-    if not path:
-        print("No path to the goal.")
-        break
-
-    position = path[0]          # take the first step of the plan
-    sense(*position)
-    steps += 1
-    print("Step", steps, ": move to", position)
-
-print("Goal reached:", position == GOAL)
-print("Model (-1 unknown, 0 free, 1 blocked):")
-for row in model:
-    print(row)
+agent.run()
 ```
 
 ## 13. Java Code
@@ -205,85 +221,98 @@ for row in model:
 import java.util.*;
 
 public class ModelBasedAgent {
-    static final int N = 4;
-    static final String[] GRID = {"S...", ".X..", ".X..", "...G"};
-    static final int[] START = {0, 0};
-    static final int[] GOAL = {3, 3};
-    static final int[][] DIRS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
-    // -1 unknown, 0 free, 1 blocked
-    static int[][] model = new int[N][N];
+    static class Agent {
+        char[][] grid;
+        int[] position;
+        int[] goal;
+        char[][] model;                 // '?' unknown, 'O' free, 'X' obstacle
+        Set<String> visited = new HashSet<>();
 
-    static void sense(int r, int c) {
-        for (int[] d : DIRS) {
-            int nr = r + d[0], nc = c + d[1];
-            if (nr >= 0 && nr < N && nc >= 0 && nc < N)
-                model[nr][nc] = GRID[nr].charAt(nc) == 'X' ? 1 : 0;
+        Agent(char[][] grid, int[] start, int[] goal) {
+            this.grid = grid;
+            this.position = start.clone();
+            this.goal = goal;
+            this.model = new char[grid.length][grid[0].length];
+            for (char[] row : model) Arrays.fill(row, '?');
+            visited.add(start[0] + "," + start[1]);
+            sense();
         }
-        model[r][c] = GRID[r].charAt(c) == 'X' ? 1 : 0;
-    }
 
-    static List<int[]> plan(int sr, int sc) {
-        int[][] parent = new int[N][N];
-        for (int[] row : parent) Arrays.fill(row, -1);
+        void sense() {
+            int x = position[0], y = position[1];
+            int[][] dirs = {{0, 0}, {-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
-        boolean[][] seen = new boolean[N][N];
-        ArrayDeque<int[]> queue = new ArrayDeque<>();
-        queue.add(new int[]{sr, sc});
-        seen[sr][sc] = true;
-
-        while (!queue.isEmpty()) {
-            int[] cur = queue.poll();
-            int r = cur[0], c = cur[1];
-
-            if (r == GOAL[0] && c == GOAL[1]) {
-                LinkedList<int[]> path = new LinkedList<>();
-                while (!(r == sr && c == sc)) {
-                    path.addFirst(new int[]{r, c});
-                    int p = parent[r][c];
-                    r = p / N;
-                    c = p % N;
-                }
-                return path;
-            }
-
-            for (int[] d : DIRS) {
-                int nr = r + d[0], nc = c + d[1];
-                if (nr >= 0 && nr < N && nc >= 0 && nc < N
-                        && !seen[nr][nc] && model[nr][nc] != 1) {
-                    seen[nr][nc] = true;
-                    parent[nr][nc] = r * N + c;
-                    queue.add(new int[]{nr, nc});
-                }
+            for (int[] d : dirs) {
+                int nx = x + d[0], ny = y + d[1];
+                if (nx >= 0 && nx < grid.length && ny >= 0 && ny < grid[0].length)
+                    model[nx][ny] = grid[nx][ny];
             }
         }
-        return new ArrayList<>();
+
+        void displayGrid() {
+            for (char[] row : model) System.out.println(Arrays.toString(row));
+            System.out.println();
+        }
+
+        boolean move() {
+            int x = position[0], y = position[1];
+            int gx = goal[0], gy = goal[1];
+
+            List<int[]> moves = new ArrayList<>();
+            if (x < gx) moves.add(new int[]{x + 1, y});
+            if (y < gy) moves.add(new int[]{x, y + 1});
+            if (x > gx) moves.add(new int[]{x - 1, y});
+            if (y > gy) moves.add(new int[]{x, y - 1});
+
+            moves.add(new int[]{x + 1, y});
+            moves.add(new int[]{x, y + 1});
+            moves.add(new int[]{x - 1, y});
+            moves.add(new int[]{x, y - 1});
+
+            for (int[] m : moves) {
+                int nx = m[0], ny = m[1];
+                if (nx >= 0 && nx < grid.length && ny >= 0 && ny < grid[0].length) {
+                    String key = nx + "," + ny;
+                    if (model[nx][ny] != 'X' && !visited.contains(key)) {
+                        position = new int[]{nx, ny};
+                        visited.add(key);
+                        sense();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        void run() {
+            int step = 1;
+            while (!(position[0] == goal[0] && position[1] == goal[1]) && step <= 50) {
+                System.out.println("Step " + step + ": Current Position = ("
+                        + position[0] + ", " + position[1] + ")");
+                if (!move()) {
+                    System.out.println("No path to the goal.");
+                    return;
+                }
+                step++;
+            }
+            System.out.println("\nGoal Reached at (" + position[0]
+                    + ", " + position[1] + ")");
+        }
     }
 
     public static void main(String[] args) {
-        for (int[] row : model) Arrays.fill(row, -1);
+        char[][] grid = {
+            {'O', 'O', 'O', 'O'},
+            {'O', 'X', 'O', 'O'},
+            {'O', 'X', 'O', 'O'},
+            {'O', 'O', 'O', 'O'}
+        };
 
-        int r = START[0], c = START[1];
-        sense(r, c);
-        int steps = 0;
-
-        while (!(r == GOAL[0] && c == GOAL[1])) {
-            List<int[]> path = plan(r, c);
-            if (path.isEmpty()) {
-                System.out.println("No path to the goal.");
-                break;
-            }
-            int[] next = path.get(0);
-            r = next[0];
-            c = next[1];
-            sense(r, c);
-            steps++;
-            System.out.println("Step " + steps + ": move to (" + r + ", " + c + ")");
-        }
-
-        System.out.println("Goal reached: " + (r == GOAL[0] && c == GOAL[1]));
-        System.out.println("Model (-1 unknown, 0 free, 1 blocked):");
-        for (int[] row : model) System.out.println(Arrays.toString(row));
+        Agent agent = new Agent(grid, new int[]{0, 0}, new int[]{3, 3});
+        System.out.println("Agent's initial model ('?' = not sensed yet):");
+        agent.displayGrid();
+        agent.run();
     }
 }
 ```
@@ -294,50 +323,90 @@ public class ModelBasedAgent {
 
 | Code block | Explanation |
 |---|---|
-| `GRID = ["S...", ".X..", ".X..", "...G"]` | The real 4×4 environment (`S` start, `G` goal, `X` obstacle). The agent cannot read it all at once. |
-| `DIRS = [...]` | The four moves: up, down, left, right. |
-| `model = [[-1] * N ...]` | The **internal state**. `-1` = unknown, `0` = free, `1` = blocked. |
-| `def sense(r, c):` | The sensor model. It reads only the current cell and its four neighbours. |
-| `model[nr][nc] = 1 if GRID[nr][nc] == "X" else 0` | Saves each sensed cell into the internal map. |
-| `def plan(start):` | Plans on the **internal model**, not on `GRID`. |
-| `queue = deque([start])` / `parent = {start: None}` | Standard BFS queue and parent map for path reconstruction. |
-| `if model[nr][nc] != 1:` | Unknown cells are treated as free (optimistic planning); known obstacles are avoided. |
-| `return path[::-1]` | Rebuilds the path from start to goal. |
-| `while position != GOAL:` | One loop iteration = one move. |
-| `position = path[0]` | Takes only the first step of the plan, then re-plans. |
-| `sense(*position)` | **Model update** — this is what makes the agent model-based. |
-| `print(...)` | Shows the moves and the final internal map. |
+| `class ModelBasedAgent:` | Keeps the grid, position, goal and internal model together in one object. |
+| `self.model = [['?' for _ in row] for row in grid]` | The **internal state**: every cell starts unknown (`?`). |
+| `self.visited = {start}` | Remembers visited cells so the agent does not move back and forth. |
+| `self.sense()` | Senses the starting cell before the first move. |
+| `def sense(self):` | The sensor model: reads only the current cell and its four neighbours. |
+| `for dx, dy in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:` | Current cell plus up, down, left and right. |
+| `if 0 <= nx < len(self.grid) and ...` | Stays inside the grid. |
+| `self.model[nx][ny] = self.grid[nx][ny]` | Writes each sensed value into the internal model. |
+| `def display_grid(self):` | Prints the agent's model, not the real grid. |
+| `def move(self):` | Chooses one move towards the goal. |
+| `moves = []` then `if x < gx: moves.append(...)` | First tries directions that reduce the distance to the goal. |
+| `moves += [(x + 1, y), (x, y + 1), (x - 1, y), (x, y - 1)]` | Fallback: any neighbour, used when the direct route is blocked. |
+| `for nx, ny in moves:` | Tries the candidate moves in order. |
+| `if self.model[nx][ny] != 'X'` | Skips cells known to be obstacles. |
+| `and (nx, ny) not in self.visited` | Skips cells already visited. |
+| `self.position = (nx, ny)` / `self.visited.add(...)` / `self.sense()` | Moves, records the cell and **updates the model**. |
+| `return True` / `return False` | Reports whether a move was possible. |
+| `def run(self):` | The main agent loop. |
+| `while self.position != self.goal and step <= 50:` | Stops at the goal, with a 50-step safety cap. |
+| `if not self.move():` | Prints "No path to the goal." and exits if the agent is trapped. |
+| `print(f"\nGoal Reached at {self.position}")` | Final result. |
 
 ### Java code
 
 | Code block | Explanation |
 |---|---|
-| `static final String[] GRID = {...}` | The real environment. |
-| `static int[][] model = new int[N][N];` | Internal map: `-1` unknown, `0` free, `1` blocked. |
-| `static void sense(int r, int c)` | Reads the current cell and its four neighbours only. |
-| `model[nr][nc] = GRID[nr].charAt(nc) == 'X' ? 1 : 0;` | Stores the sensed value in the model. |
-| `static List<int[]> plan(int sr, int sc)` | BFS on the model; returns the path as a list of cells. |
-| `int[][] parent` | Stores the parent cell of each visited cell (encoded as `r * N + c`). |
-| `if (... && model[nr][nc] != 1)` | Unknown and free cells are allowed; known obstacles are skipped. |
-| `path.addFirst(...)` | Builds the path from goal back to start. |
-| `while (!(r == GOAL[0] && c == GOAL[1]))` | Main agent loop. |
-| `List<int[]> path = plan(r, c);` | Re-plan on every step using the latest model. |
-| `r = next[0]; c = next[1]; sense(r, c);` | Move, then sense and update the model. |
-| `System.out.println(...)` | Prints the moves and the final model. |
+| `static class Agent {` | Keeps the environment, position, goal and internal model together. |
+| `char[][] model;` | The **internal state** - the agent's own map of the world. |
+| `Set<String> visited = new HashSet<>();` | Cells already visited, stored as `"row,col"` strings. |
+| `for (char[] row : model) Arrays.fill(row, '?');` | Starts with every cell unknown (`?`). |
+| `sense();` | Senses the starting cell and its neighbours immediately. |
+| `void sense() {` | The sensor model: reads only the current cell and its four neighbours. |
+| `int[][] dirs = {{0,0},{-1,0},{1,0},{0,-1},{0,1}};` | Current cell plus up, down, left and right. |
+| `if (nx >= 0 && nx < grid.length && ...)` | Bounds check before reading a neighbour. |
+| `model[nx][ny] = grid[nx][ny];` | Stores each sensed value in the internal model. |
+| `boolean move() {` | Chooses one move towards the goal. |
+| `if (x < gx) moves.add(...)` etc. | First tries directions that reduce the distance to the goal. |
+| `moves.add(...)` four more times | Fallback: any neighbour, used when the direct route is blocked. |
+| `for (int[] m : moves) {` | Tries the candidate moves in order. |
+| `if (... && model[nx][ny] != 'X')` | Skips cells known to be obstacles. |
+| `&& !visited.contains(key)` | Skips cells already visited, so the agent cannot oscillate. |
+| `position = ...; visited.add(key); sense();` | Moves, records the cell and **updates the model**. |
+| `return true;` / `return false;` | Reports whether a move was possible. |
+| `void run() {` | The main agent loop. |
+| `while (... && step <= 50)` | Stops at the goal, with a 50-step safety cap. |
+| `if (!move()) { ... return; }` | Prints "No path to the goal." and exits if the agent is trapped. |
+| `main(...)` | Creates the 4x4 grid and starts the agent at `(0,0)` with goal `(3,3)`. |
 
 ## 15. Sample Output
 
+### Python
+
 ```text
-Step 1 : move to (1, 0)
-Step 2 : move to (2, 0)
-Step 3 : move to (3, 0)
-Step 4 : move to (3, 1)
-Step 5 : move to (3, 2)
-Step 6 : move to (3, 3)
-Goal reached: True
-Model (-1 unknown, 0 free, 1 blocked):
-[0, 0, -1, -1]
-[0, 1, -1, -1]
-[0, 1, 0, 0]
-[0, 0, 0, 0]
+Agent's initial model ('?' = not sensed yet):
+['O', 'O', '?', '?']
+['O', '?', '?', '?']
+['?', '?', '?', '?']
+['?', '?', '?', '?']
+
+Step 1: Current Position = (0, 0)
+Step 2: Current Position = (1, 0)
+Step 3: Current Position = (2, 0)
+Step 4: Current Position = (3, 0)
+Step 5: Current Position = (3, 1)
+Step 6: Current Position = (3, 2)
+
+Goal Reached at (3, 3)
+```
+
+### Java
+
+```text
+Agent's initial model ('?' = not sensed yet):
+[O, O, ?, ?]
+[O, ?, ?, ?]
+[?, ?, ?, ?]
+[?, ?, ?, ?]
+
+Step 1: Current Position = (0, 0)
+Step 2: Current Position = (1, 0)
+Step 3: Current Position = (2, 0)
+Step 4: Current Position = (3, 0)
+Step 5: Current Position = (3, 1)
+Step 6: Current Position = (3, 2)
+
+Goal Reached at (3, 3)
 ```

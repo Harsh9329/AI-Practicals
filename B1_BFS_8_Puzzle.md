@@ -55,8 +55,8 @@ Each board configuration is a state; actions slide the blank Up/Down/Left/Right.
 1. Create a FIFO queue and enqueue the start state; mark it visited.
 2. While the queue is not empty:
    1. Dequeue the front state `n`.
-   2. If `n` is the goal, reconstruct the path (using parent pointers) and return it.
-   3. Otherwise, generate all valid successors of `n`; enqueue each unvisited successor and mark it visited.
+   2. If `n` is the goal, return the path stored with that node (each node carries the path used to reach it).
+   3. Otherwise, generate all valid successors of `n`; enqueue each unvisited successor with its extended path and mark it visited.
 3. If the queue empties without finding the goal, report failure (no solution exists).
 
 ## 8. Diagram
@@ -85,7 +85,7 @@ For the 8-puzzle, a state is a 3 × 3 board:
 
 ## 9. Conclusion
 
-BFS was implemented and applied to solve a chosen planning problem. The algorithm correctly found the shortest solution path (in terms of number of moves), and its completeness and optimality (for unit-cost problems) were verified experimentally on multiple test instances.
+BFS was implemented and applied to the 8-puzzle planning problem. Because BFS expands states level by level using a FIFO queue, it found the shortest solution path of 8 moves for the given start state, and the visited set prevented repeated states from being expanded again.
 
 ## 10. Viva Voce Questions
 
@@ -118,59 +118,81 @@ java BFS8Puzzle
 ## 12. Python Code
 
 ```python
-# B1 - BFS for the 8-Puzzle
+# BFS to solve a planning problem (8-Puzzle)
 
 from collections import deque
 
-GOAL = (1, 2, 3, 4, 5, 6, 7, 8, 0)
-START = (1, 3, 6, 5, 0, 2, 4, 7, 8)      # 0 is the blank
+GOAL = [[1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 0]]
+
+START = [[1, 3, 6],
+         [5, 0, 2],
+         [4, 7, 8]]
 
 
-def neighbours(state):
-    """All states reachable by moving one tile into the blank."""
-    blank = state.index(0)
-    r, c = divmod(blank, 3)
-    for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-        nr, nc = r + dr, c + dc
-        if 0 <= nr < 3 and 0 <= nc < 3:
-            i = nr * 3 + nc
-            s = list(state)
-            s[blank], s[i] = s[i], s[blank]
-            yield tuple(s)
+def find_blank(state):
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] == 0:
+                return i, j
+
+
+def state_to_tuple(state):
+    return tuple(tuple(row) for row in state)
+
+
+def get_neighbors(state):
+    neighbors = []
+    x, y = find_blank(state)
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+    for dx, dy in directions:
+        nx, ny = x + dx, y + dy
+
+        if 0 <= nx < 3 and 0 <= ny < 3:
+            new_state = [row[:] for row in state]
+            new_state[x][y], new_state[nx][ny] = new_state[nx][ny], new_state[x][y]
+            neighbors.append(new_state)
+
+    return neighbors
 
 
 def bfs(start):
-    queue = deque([start])
-    parent = {start: None}       # state -> state it came from
-    explored = 0
+    queue = deque([(start, [])])
+    visited = {state_to_tuple(start)}
 
     while queue:
-        state = queue.popleft()  # FIFO = breadth first
-        explored += 1
-        if state == GOAL:
-            path = []
-            while state is not None:
-                path.append(state)
-                state = parent[state]
-            return path[::-1], explored
+        current_state, path = queue.popleft()
 
-        for nxt in neighbours(state):
-            if nxt not in parent:
-                parent[nxt] = state
-                queue.append(nxt)
-    return None, explored
+        if current_state == GOAL:
+            return path + [current_state]
 
+        for neighbor in get_neighbors(current_state):
+            state_tuple = state_to_tuple(neighbor)
 
-def show(state):
-    for i in range(0, 9, 3):
-        print(state[i], state[i + 1], state[i + 2])
+            if state_tuple not in visited:
+                visited.add(state_tuple)
+                queue.append((neighbor, path + [current_state]))
+
+    return None
 
 
-path, explored = bfs(START)
-print("Moves:", len(path) - 1, "| States explored:", explored)
-for step, state in enumerate(path):
-    print("\nStep", step)
-    show(state)
+def print_solution(solution):
+    if solution:
+        print("\nSolution found in", len(solution) - 1, "moves:\n")
+
+        for step, state in enumerate(solution):
+            print("Step", step)
+            for row in state:
+                print(row)
+            print()
+    else:
+        print("No solution found.")
+
+
+solution = bfs(START)
+print_solution(solution)
 ```
 
 ## 13. Java Code
@@ -179,75 +201,98 @@ for step, state in enumerate(path):
 import java.util.*;
 
 public class BFS8Puzzle {
+
     static final String GOAL = "123456780";
     static final String START = "136502478";
-    static final int[][] DIRS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    static final int[][] DIRECTIONS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
-    static List<String> neighbours(String state) {
-        List<String> result = new ArrayList<>();
+    // One node = current state + the path taken to reach it
+    static class Node {
+        String state;
+        List<String> path;
+
+        Node(String state, List<String> path) {
+            this.state = state;
+            this.path = path;
+        }
+    }
+
+    static List<String> getNeighbors(String state) {
+        List<String> neighbors = new ArrayList<>();
         int blank = state.indexOf('0');
-        int r = blank / 3, c = blank % 3;
+        int x = blank / 3;
+        int y = blank % 3;
 
-        for (int[] d : DIRS) {
-            int nr = r + d[0], nc = c + d[1];
-            if (nr >= 0 && nr < 3 && nc >= 0 && nc < 3) {
-                char[] a = state.toCharArray();
-                int i = nr * 3 + nc;
-                char tmp = a[blank];
-                a[blank] = a[i];
-                a[i] = tmp;
-                result.add(new String(a));
+        for (int[] d : DIRECTIONS) {
+            int nx = x + d[0];
+            int ny = y + d[1];
+
+            if (nx >= 0 && nx < 3 && ny >= 0 && ny < 3) {
+                char[] next = state.toCharArray();
+                int i = nx * 3 + ny;
+
+                char temp = next[blank];
+                next[blank] = next[i];
+                next[i] = temp;
+
+                neighbors.add(new String(next));
             }
         }
-        return result;
+
+        return neighbors;
     }
 
-    static void show(String state) {
-        for (int i = 0; i < 9; i += 3)
-            System.out.println(state.charAt(i) + " "
-                    + state.charAt(i + 1) + " " + state.charAt(i + 2));
-    }
+    static List<String> bfs(String start) {
+        Queue<Node> queue = new LinkedList<>();
+        Set<String> visited = new HashSet<>();
 
-    public static void main(String[] args) {
-        ArrayDeque<String> queue = new ArrayDeque<>();
-        Map<String, String> parent = new HashMap<>();
-        queue.add(START);
-        parent.put(START, null);
-
-        String found = null;
-        int explored = 0;
+        queue.add(new Node(start, new ArrayList<>()));
+        visited.add(start);
 
         while (!queue.isEmpty()) {
-            String state = queue.poll();
-            explored++;
-            if (state.equals(GOAL)) {
-                found = state;
-                break;
+            Node current = queue.poll();
+
+            if (current.state.equals(GOAL)) {
+                List<String> solution = new ArrayList<>(current.path);
+                solution.add(current.state);
+                return solution;
             }
-            for (String next : neighbours(state)) {
-                if (!parent.containsKey(next)) {
-                    parent.put(next, state);
-                    queue.add(next);
+
+            for (String neighbor : getNeighbors(current.state)) {
+                if (!visited.contains(neighbor)) {
+                    visited.add(neighbor);
+
+                    List<String> newPath = new ArrayList<>(current.path);
+                    newPath.add(current.state);
+
+                    queue.add(new Node(neighbor, newPath));
                 }
             }
         }
 
-        if (found == null) {
-            System.out.println("No solution");
-            return;
+        return null;
+    }
+
+    static void printBoard(String state) {
+        for (int i = 0; i < 9; i += 3) {
+            System.out.println(state.charAt(i) + " "
+                    + state.charAt(i + 1) + " " + state.charAt(i + 2));
         }
+    }
 
-        LinkedList<String> path = new LinkedList<>();
-        for (String s = found; s != null; s = parent.get(s))
-            path.addFirst(s);
+    public static void main(String[] args) {
+        List<String> solution = bfs(START);
 
-        System.out.println("Moves: " + (path.size() - 1)
-                + " | States explored: " + explored);
+        if (solution != null) {
+            System.out.println("\nSolution found in " + (solution.size() - 1) + " moves:\n");
 
-        int step = 0;
-        for (String s : path) {
-            System.out.println("\nStep " + step++);
-            show(s);
+            for (int step = 0; step < solution.size(); step++) {
+                System.out.println("Step " + step);
+                printBoard(solution.get(step));
+                System.out.println();
+            }
+        } else {
+            System.out.println("No solution found.");
         }
     }
 }
@@ -259,49 +304,114 @@ public class BFS8Puzzle {
 
 | Code block | Explanation |
 |---|---|
-| `GOAL = (1, 2, 3, 4, 5, 6, 7, 8, 0)` | Goal board; `0` is the blank. |
-| `START = (1, 3, 6, 5, 0, 2, 4, 7, 8)` | Start board used in the demo. |
-| `def neighbours(state):` | Generates every state reachable by one legal slide. |
-| `blank = state.index(0)` | Finds the blank tile. |
-| `r, c = divmod(blank, 3)` | Converts the 1-D index into a row and column. |
-| `for dr, dc in [...]:` | Tries up, down, left, right. |
-| `if 0 <= nr < 3 and 0 <= nc < 3:` | Stays inside the board. |
-| `s[blank], s[i] = s[i], s[blank]` | Swaps the blank with the neighbouring tile = one move. |
-| `yield tuple(s)` | Returns the new state as an immutable tuple (usable in a set/dict). |
-| `queue = deque([start])` | BFS uses a **FIFO queue**. |
-| `parent = {start: None}` | Remembers where each state came from, for path rebuilding. |
-| `explored = 0` / `explored += 1` | Counts how many states BFS removes from the queue. |
-| `state = queue.popleft()` | Takes the shallowest state first — this makes it BFS. |
-| `if state == GOAL:` | Goal test. |
-| `while state is not None:` | Walks the parent chain back to the start. |
-| `return path[::-1], explored` | Reverses the path so it runs start → goal. |
-| `if nxt not in parent:` | Visited check: each state is enqueued only once. |
-| `parent[nxt] = state` / `queue.append(nxt)` | Records the parent and adds the successor. |
-| `def show(state):` | Prints the board as three rows. |
+| `from collections import deque` | `deque` gives O(1) removal from the front, needed for BFS. |
+| `GOAL = [[1, 2, 3], ...]` | The goal board; `0` is the blank tile. |
+| `START = [[1, 3, 6], ...]` | The start board used in the demo (8 moves from the goal). |
+| `def find_blank(state):` | Finds the row and column of the blank (`0`). |
+| `def state_to_tuple(state):` | Converts the board to a tuple so it can be stored in a set. |
+| `def get_neighbors(state):` | Generates every board reachable by one legal slide. |
+| `directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]` | Up, down, left, right. |
+| `if 0 <= nx < 3 and 0 <= ny < 3:` | Keeps the blank inside the board. |
+| `new_state = [row[:] for row in state]` | Copies the board so the parent state is not modified. |
+| `new_state[x][y], new_state[nx][ny] = new_state[nx][ny], new_state[x][y]` | Swaps the blank with the neighbouring tile - one move. |
+| `def bfs(start):` | Breadth-first search. |
+| `queue = deque([(start, [])])` | Each queue item is `(state, path taken so far)`. |
+| `visited = {state_to_tuple(start)}` | Marks the start state before the loop. |
+| `current_state, path = queue.popleft()` | **FIFO**: takes the shallowest state first, so the first solution is shortest. |
+| `if current_state == GOAL:` | Goal test. |
+| `return path + [current_state]` | Returns the complete solution path. |
+| `for neighbor in get_neighbors(current_state):` | Expands the current state. |
+| `if state_tuple not in visited:` | Checks **before** enqueueing, so no state enters the queue twice. |
+| `visited.add(state_tuple)` | Marks the neighbour as seen. |
+| `queue.append((neighbor, path + [current_state]))` | Enqueues the neighbour with its extended path. |
+| `return None` | The queue emptied without reaching the goal. |
+| `def print_solution(solution):` | Prints the number of moves and every board in the path. |
+| `solution = bfs(START)` | Runs BFS from the start state. |
 
 ### Java code
 
 | Code block | Explanation |
 |---|---|
-| `static final String GOAL = "123456780";` | Goal state as a 9-character string. |
-| `static final String START = "136502478";` | Start state. |
-| `static List<String> neighbours(String state)` | Generates all one-move successors. |
-| `int blank = state.indexOf('0');` | Finds the blank. |
-| `char[] a = state.toCharArray();` | Strings are immutable, so copy before swapping. |
-| `ArrayDeque<String> queue` | FIFO queue for BFS (`add` at back, `poll` from front). |
-| `Map<String, String> parent` | Parent of every state for path reconstruction. |
-| `while (!queue.isEmpty())` | BFS loop. |
-| `String state = queue.poll();` | Removes the shallowest state. |
-| `if (state.equals(GOAL))` | Goal test. |
-| `if (!parent.containsKey(next))` | Visited check. |
-| `parent.put(next, state); queue.add(next);` | Records the parent and enqueues. |
-| `path.addFirst(s)` | Builds the path from goal back to start. |
-| `for (String s : path)` | Prints every state step by step. |
+| `static final String GOAL = "123456780";` | Goal board encoded as 9 characters, row by row. |
+| `static final String START = "136502478";` | Start board, also encoded row by row. |
+| `static class Node` | Stores a state together with the path used to reach it. |
+| `static List<String> getNeighbors(String state)` | Generates every one-slide successor. |
+| `int blank = state.indexOf('0');` | Finds the blank position. |
+| `int x = blank / 3; int y = blank % 3;` | Converts the index into a row and column. |
+| `char[] next = state.toCharArray();` | Strings are immutable, so copy before swapping. |
+| `next[blank]` / `next[i]` swap | Swaps the blank with the neighbouring tile. |
+| `static List<String> bfs(String start)` | Breadth-first search. |
+| `Queue<Node> queue = new LinkedList<>();` | FIFO queue. |
+| `Set<String> visited = new HashSet<>();` | States already enqueued. |
+| `queue.add(new Node(start, new ArrayList<>()));` | Adds the start with an empty path. |
+| `visited.add(start);` | Marks the start before the loop. |
+| `Node current = queue.poll();` | Takes the shallowest state. |
+| `if (current.state.equals(GOAL))` | Goal test. |
+| `if (!visited.contains(neighbor))` | Checks **before** enqueueing. |
+| `List<String> newPath = new ArrayList<>(current.path);` | Copies the path so branches do not share a list. |
+| `queue.add(new Node(neighbor, newPath));` | Enqueues the neighbour with its extended path. |
+| `static void printBoard(String state)` | Prints 3 characters per row. |
+| `main(...)` | Runs BFS and prints the solution. |
 
 ## 15. Sample Output
 
+### Python
+
 ```text
-Moves: 8 | States explored: 311
+
+Solution found in 8 moves:
+
+Step 0
+[1, 3, 6]
+[5, 0, 2]
+[4, 7, 8]
+
+Step 1
+[1, 3, 6]
+[5, 2, 0]
+[4, 7, 8]
+
+Step 2
+[1, 3, 0]
+[5, 2, 6]
+[4, 7, 8]
+
+Step 3
+[1, 0, 3]
+[5, 2, 6]
+[4, 7, 8]
+
+Step 4
+[1, 2, 3]
+[5, 0, 6]
+[4, 7, 8]
+
+Step 5
+[1, 2, 3]
+[0, 5, 6]
+[4, 7, 8]
+
+Step 6
+[1, 2, 3]
+[4, 5, 6]
+[0, 7, 8]
+
+Step 7
+[1, 2, 3]
+[4, 5, 6]
+[7, 0, 8]
+
+Step 8
+[1, 2, 3]
+[4, 5, 6]
+[7, 8, 0]
+```
+
+### Java
+
+```text
+
+Solution found in 8 moves:
 
 Step 0
 1 3 6

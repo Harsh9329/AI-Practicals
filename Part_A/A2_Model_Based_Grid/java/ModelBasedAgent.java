@@ -1,84 +1,97 @@
 import java.util.*;
 
 public class ModelBasedAgent {
-    static final int N = 4;
-    static final String[] GRID = {"S...", ".X..", ".X..", "...G"};
-    static final int[] START = {0, 0};
-    static final int[] GOAL = {3, 3};
-    static final int[][] DIRS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
-    // -1 unknown, 0 free, 1 blocked
-    static int[][] model = new int[N][N];
+    static class Agent {
+        char[][] grid;
+        int[] position;
+        int[] goal;
+        char[][] model;                 // '?' unknown, 'O' free, 'X' obstacle
+        Set<String> visited = new HashSet<>();
 
-    static void sense(int r, int c) {
-        for (int[] d : DIRS) {
-            int nr = r + d[0], nc = c + d[1];
-            if (nr >= 0 && nr < N && nc >= 0 && nc < N)
-                model[nr][nc] = GRID[nr].charAt(nc) == 'X' ? 1 : 0;
+        Agent(char[][] grid, int[] start, int[] goal) {
+            this.grid = grid;
+            this.position = start.clone();
+            this.goal = goal;
+            this.model = new char[grid.length][grid[0].length];
+            for (char[] row : model) Arrays.fill(row, '?');
+            visited.add(start[0] + "," + start[1]);
+            sense();
         }
-        model[r][c] = GRID[r].charAt(c) == 'X' ? 1 : 0;
-    }
 
-    static List<int[]> plan(int sr, int sc) {
-        int[][] parent = new int[N][N];
-        for (int[] row : parent) Arrays.fill(row, -1);
+        void sense() {
+            int x = position[0], y = position[1];
+            int[][] dirs = {{0, 0}, {-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
-        boolean[][] seen = new boolean[N][N];
-        ArrayDeque<int[]> queue = new ArrayDeque<>();
-        queue.add(new int[]{sr, sc});
-        seen[sr][sc] = true;
-
-        while (!queue.isEmpty()) {
-            int[] cur = queue.poll();
-            int r = cur[0], c = cur[1];
-
-            if (r == GOAL[0] && c == GOAL[1]) {
-                LinkedList<int[]> path = new LinkedList<>();
-                while (!(r == sr && c == sc)) {
-                    path.addFirst(new int[]{r, c});
-                    int p = parent[r][c];
-                    r = p / N;
-                    c = p % N;
-                }
-                return path;
-            }
-
-            for (int[] d : DIRS) {
-                int nr = r + d[0], nc = c + d[1];
-                if (nr >= 0 && nr < N && nc >= 0 && nc < N
-                        && !seen[nr][nc] && model[nr][nc] != 1) {
-                    seen[nr][nc] = true;
-                    parent[nr][nc] = r * N + c;
-                    queue.add(new int[]{nr, nc});
-                }
+            for (int[] d : dirs) {
+                int nx = x + d[0], ny = y + d[1];
+                if (nx >= 0 && nx < grid.length && ny >= 0 && ny < grid[0].length)
+                    model[nx][ny] = grid[nx][ny];
             }
         }
-        return new ArrayList<>();
+
+        void displayGrid() {
+            for (char[] row : model) System.out.println(Arrays.toString(row));
+            System.out.println();
+        }
+
+        boolean move() {
+            int x = position[0], y = position[1];
+            int gx = goal[0], gy = goal[1];
+
+            List<int[]> moves = new ArrayList<>();
+            if (x < gx) moves.add(new int[]{x + 1, y});
+            if (y < gy) moves.add(new int[]{x, y + 1});
+            if (x > gx) moves.add(new int[]{x - 1, y});
+            if (y > gy) moves.add(new int[]{x, y - 1});
+
+            moves.add(new int[]{x + 1, y});
+            moves.add(new int[]{x, y + 1});
+            moves.add(new int[]{x - 1, y});
+            moves.add(new int[]{x, y - 1});
+
+            for (int[] m : moves) {
+                int nx = m[0], ny = m[1];
+                if (nx >= 0 && nx < grid.length && ny >= 0 && ny < grid[0].length) {
+                    String key = nx + "," + ny;
+                    if (model[nx][ny] != 'X' && !visited.contains(key)) {
+                        position = new int[]{nx, ny};
+                        visited.add(key);
+                        sense();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        void run() {
+            int step = 1;
+            while (!(position[0] == goal[0] && position[1] == goal[1]) && step <= 50) {
+                System.out.println("Step " + step + ": Current Position = ("
+                        + position[0] + ", " + position[1] + ")");
+                if (!move()) {
+                    System.out.println("No path to the goal.");
+                    return;
+                }
+                step++;
+            }
+            System.out.println("\nGoal Reached at (" + position[0]
+                    + ", " + position[1] + ")");
+        }
     }
 
     public static void main(String[] args) {
-        for (int[] row : model) Arrays.fill(row, -1);
+        char[][] grid = {
+            {'O', 'O', 'O', 'O'},
+            {'O', 'X', 'O', 'O'},
+            {'O', 'X', 'O', 'O'},
+            {'O', 'O', 'O', 'O'}
+        };
 
-        int r = START[0], c = START[1];
-        sense(r, c);
-        int steps = 0;
-
-        while (!(r == GOAL[0] && c == GOAL[1])) {
-            List<int[]> path = plan(r, c);
-            if (path.isEmpty()) {
-                System.out.println("No path to the goal.");
-                break;
-            }
-            int[] next = path.get(0);
-            r = next[0];
-            c = next[1];
-            sense(r, c);
-            steps++;
-            System.out.println("Step " + steps + ": move to (" + r + ", " + c + ")");
-        }
-
-        System.out.println("Goal reached: " + (r == GOAL[0] && c == GOAL[1]));
-        System.out.println("Model (-1 unknown, 0 free, 1 blocked):");
-        for (int[] row : model) System.out.println(Arrays.toString(row));
+        Agent agent = new Agent(grid, new int[]{0, 0}, new int[]{3, 3});
+        System.out.println("Agent's initial model ('?' = not sensed yet):");
+        agent.displayGrid();
+        agent.run();
     }
 }

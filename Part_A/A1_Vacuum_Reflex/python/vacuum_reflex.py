@@ -1,31 +1,54 @@
-# A1 - Simple Reflex Agent: Vacuum Cleaner World
+# Simple Reflex Agent for Vacuum Cleaner World
 
-def agent(location, status):
-    if status == "Dirty":
-        return "Suck"
-    if location == "A":
-        return "Right"
-    return "Left"
+class VacuumCleanerAgent:
+    def __init__(self):
+        self.performance = 0
+
+    def act(self, location, status):
+        if status == "Dirty":
+            return "Suck"
+        elif location == "A":
+            return "Right"
+        else:
+            return "Left"
 
 
-rooms = {"A": "Dirty", "B": "Dirty"}   # environment
-location = "A"                          # start room
-score = 0
+# Environment
+environment = {
+    "A": "Dirty",
+    "B": "Dirty"
+}
 
-for step in range(1, 7):                # at most 6 steps
-    status = rooms[location]            # SENSE
-    action = agent(location, status)    # DECIDE
-    print("Step", step, "|", location, status, "->", action)
+agent = VacuumCleanerAgent()
+location = "A"
 
-    if action == "Suck":                # ACT
-        rooms[location] = "Clean"
-        score += 10
-    else:
-        location = "B" if action == "Right" else "A"
-        score -= 1
+print("Initial Environment:", environment)
+print("Starting Location:", location)
+print()
 
-    if rooms["A"] == rooms["B"] == "Clean":
-        break
+# Run for a fixed number of steps
+for step in range(4):
+    status = environment[location]
+    action = agent.act(location, status)
 
-print("Final rooms:", rooms)
-print("Score:", score)
+    print(f"Step {step + 1}")
+    print(f"Location: {location}")
+    print(f"Status: {status}")
+    print(f"Action: {action}")
+
+    # Execute action
+    if action == "Suck":
+        environment[location] = "Clean"
+        agent.performance += 10
+
+    elif action == "Right":
+        location = "B"
+
+    elif action == "Left":
+        location = "A"
+
+    print("Environment:", environment)
+    print()
+
+print("Final Environment:", environment)
+print("Performance Score:", agent.performance)

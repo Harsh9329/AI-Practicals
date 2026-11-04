@@ -75,7 +75,7 @@ The agent (vacuum cleaner) perceives its current location and whether that locat
 
 ### Performance Measure and Rationality
 
-A **performance measure** evaluates a sequence of environment states — for example, `+1` point for every clean square at every time step, minus a penalty for every movement.
+A **performance measure** evaluates a sequence of environment states. In this program the agent scores `+10` points for every room it sucks clean; moves carry no penalty.
 
 An agent is **rational** if, for every possible percept sequence, it selects an action expected to maximise its performance measure given the evidence provided by the percept sequence and whatever built-in knowledge it has.
 
@@ -83,12 +83,12 @@ The simple reflex agent above is rational for a fully observable, deterministic 
 
 ## 7. Algorithm
 
-1. Initialize the environment with random dirt status at each location.
-2. Repeat for a fixed number of steps or until both locations are clean:
-   1. Sense current location and its status.
+1. Initialize the environment with both rooms Dirty and place the agent in room A.
+2. Repeat for exactly 4 time steps (a fixed count prevents an infinite loop):
+   1. Sense the current location and its status.
    2. Apply the condition-action rule table to select an action.
    3. Execute the action and update the environment.
-   4. Update the performance measure.
+   4. Update the performance measure (`+10` for a successful Suck).
 3. Report the final environment state and total performance score.
 
 ## 8. Diagram
@@ -104,7 +104,7 @@ The agent senses `[location, status]`, applies a rule, and performs an action. T
 
 ## 9. Conclusion
 
-The simple reflex agent for the Vacuum Cleaner world was designed and implemented successfully using condition-action rules. The agent's behaviour was traced for different initial configurations and found to be rational for the given fully observable two-square environment, cleaning both squares in a bounded number of steps.
+The simple reflex agent for the Vacuum Cleaner world was designed and implemented successfully using condition-action rules. The agent's behaviour was traced for the given initial configuration and found to be rational for the fully observable two-square environment, cleaning both squares in a bounded number of steps.
 
 ## 10. Viva Voce Questions
 
@@ -137,75 +137,113 @@ java VacuumReflex
 ## 12. Python Code
 
 ```python
-# A1 - Simple Reflex Agent: Vacuum Cleaner World
+# Simple Reflex Agent for Vacuum Cleaner World
 
-def agent(location, status):
-    if status == "Dirty":
-        return "Suck"
-    if location == "A":
-        return "Right"
-    return "Left"
+class VacuumCleanerAgent:
+    def __init__(self):
+        self.performance = 0
+
+    def act(self, location, status):
+        if status == "Dirty":
+            return "Suck"
+        elif location == "A":
+            return "Right"
+        else:
+            return "Left"
 
 
-rooms = {"A": "Dirty", "B": "Dirty"}   # environment
-location = "A"                          # start room
-score = 0
+# Environment
+environment = {
+    "A": "Dirty",
+    "B": "Dirty"
+}
 
-for step in range(1, 7):                # at most 6 steps
-    status = rooms[location]            # SENSE
-    action = agent(location, status)    # DECIDE
-    print("Step", step, "|", location, status, "->", action)
+agent = VacuumCleanerAgent()
+location = "A"
 
-    if action == "Suck":                # ACT
-        rooms[location] = "Clean"
-        score += 10
-    else:
-        location = "B" if action == "Right" else "A"
-        score -= 1
+print("Initial Environment:", environment)
+print("Starting Location:", location)
+print()
 
-    if rooms["A"] == rooms["B"] == "Clean":
-        break
+# Run for a fixed number of steps
+for step in range(4):
+    status = environment[location]
+    action = agent.act(location, status)
 
-print("Final rooms:", rooms)
-print("Score:", score)
+    print(f"Step {step + 1}")
+    print(f"Location: {location}")
+    print(f"Status: {status}")
+    print(f"Action: {action}")
+
+    # Execute action
+    if action == "Suck":
+        environment[location] = "Clean"
+        agent.performance += 10
+
+    elif action == "Right":
+        location = "B"
+
+    elif action == "Left":
+        location = "A"
+
+    print("Environment:", environment)
+    print()
+
+print("Final Environment:", environment)
+print("Performance Score:", agent.performance)
 ```
 
 ## 13. Java Code
 
 ```java
 public class VacuumReflex {
+    static int performance = 0;
 
-    static String agent(String location, String status) {
-        if (status.equals("Dirty")) return "Suck";
-        if (location.equals("A")) return "Right";
-        return "Left";
+    static String act(String location, String status) {
+        if (status.equals("Dirty")) {
+            return "Suck";
+        } else if (location.equals("A")) {
+            return "Right";
+        } else {
+            return "Left";
+        }
     }
 
     public static void main(String[] args) {
-        String[] rooms = {"Dirty", "Dirty"};   // index 0 = A, 1 = B
+        String[] environment = {"Dirty", "Dirty"};   // 0 = A, 1 = B
         int location = 0;
-        int score = 0;
 
-        for (int step = 1; step <= 7; step++) {
-            String status = rooms[location];
-            String action = agent(location == 0 ? "A" : "B", status);
-            System.out.println("Step " + step + " | "
-                    + (location == 0 ? "A" : "B") + " " + status
-                    + " -> " + action);
+        System.out.println("Initial Environment: A=" + environment[0]
+                + ", B=" + environment[1]);
+        System.out.println("Starting Location: A");
+        System.out.println();
+
+        for (int step = 1; step <= 4; step++) {
+            String status = environment[location];
+            String action = act(location == 0 ? "A" : "B", status);
+
+            System.out.println("Step " + step);
+            System.out.println("Location: " + (location == 0 ? "A" : "B"));
+            System.out.println("Status: " + status);
+            System.out.println("Action: " + action);
 
             if (action.equals("Suck")) {
-                rooms[location] = "Clean";
-                score += 10;
-            } else {
-                location = action.equals("Right") ? 1 : 0;
-                score--;
+                environment[location] = "Clean";
+                performance += 10;
+            } else if (action.equals("Right")) {
+                location = 1;
+            } else if (action.equals("Left")) {
+                location = 0;
             }
 
-            if (rooms[0].equals("Clean") && rooms[1].equals("Clean")) break;
+            System.out.println("Environment: A=" + environment[0]
+                    + ", B=" + environment[1]);
+            System.out.println();
         }
 
-        System.out.println("Final rooms: A=" + rooms[0] + ", B=" + rooms[1]);
-        System.out.println("Score: " + score);
+        System.out.println("Final Environment: A=" + environment[0]
+                + ", B=" + environment[1]);
+        System.out.println("Performance Score: " + performance);
     }
 }
 ```
@@ -216,47 +254,123 @@ public class VacuumReflex {
 
 | Code block | Explanation |
 |---|---|
-| `def agent(location, status):` | The **agent program**. It receives only the current percept. |
-| `if status == "Dirty": return "Suck"` | One rule covers both rooms: a dirty room is always sucked. |
-| `if location == "A": return "Right"` | Clean room A → move to room B. |
-| `return "Left"` | Clean room B → move back to room A. |
-| `rooms = {"A": "Dirty", "B": "Dirty"}` | The environment. Change these values to test other cases. |
+| `class VacuumCleanerAgent:` | Defines the agent as a class so its performance score stays inside the agent. |
+| `def __init__(self):` | Constructor; runs once when the agent is created. |
+| `self.performance = 0` | The performance measure starts at zero. |
+| `def act(self, location, status):` | The **agent program**. It receives only the current percept `(location, status)`. |
+| `if status == "Dirty":` | **Condition-action rule 1**: if the current room is dirty ... |
+| `return "Suck"` | ... the action is Suck. |
+| `elif location == "A":` | **Rule 2**: clean room and agent in A ... |
+| `return "Right"` | ... move right to room B. |
+| `else:` | Otherwise the agent is in B and the room is clean. |
+| `return "Left"` | **Rule 3**: move left back to room A. |
+| `environment = {` | The environment: a dictionary with two rooms. Change the values to test other cases. |
+| `"A": "Dirty",` / `"B": "Dirty"` | Both rooms start dirty. |
+| `agent = VacuumCleanerAgent()` | Creates the agent object. |
 | `location = "A"` | The agent starts in room A. |
-| `score = 0` | Performance measure. |
-| `for step in range(1, 7):` | Time steps. The limit of 6 prevents an infinite loop. |
-| `status = rooms[location]` | **SENSE** the current room. |
-| `action = agent(location, status)` | **DECIDE** using the condition-action rules. |
-| `if action == "Suck":` | **ACT**: clean the room and add 10 points. |
-| `else:` | Otherwise the action is a move: −1 point. |
-| `location = "B" if action == "Right" else "A"` | Update the agent's position after moving. |
-| `if rooms["A"] == rooms["B"] == "Clean": break` | Stop as soon as both rooms are clean. |
-| `print(...)` | Prints the trace, final rooms and score for the viva. |
+| `for step in range(4):` | Runs for exactly 4 time steps, so the program cannot loop forever. |
+| `status = environment[location]` | **SENSE**: read the current room's status. |
+| `action = agent.act(location, status)` | **DECIDE**: apply the condition-action rules. |
+| `print(f"Step {step + 1}")` ... | Prints the percept and the chosen action for the trace. |
+| `if action == "Suck":` | **ACT**: clean the current room ... |
+| `environment[location] = "Clean"` | ... update the environment ... |
+| `agent.performance += 10` | ... and add 10 points. |
+| `elif action == "Right":` / `location = "B"` | **ACT**: move to room B. |
+| `elif action == "Left":` / `location = "A"` | **ACT**: move to room A. |
+| `print("Environment:", environment)` | Shows the environment after every action. |
+| `print("Final Environment:", ...)` | Final state after 4 steps. |
+| `print("Performance Score:", ...)` | Final score: 2 sucks x 10 = 20. |
 
 ### Java code
 
 | Code block | Explanation |
 |---|---|
-| `static String agent(String location, String status)` | Java agent program; same three rules. |
-| `if (status.equals("Dirty")) return "Suck";` | Dirty room → Suck. |
-| `if (location.equals("A")) return "Right";` | Clean A → Right. |
-| `return "Left";` | Clean B → Left. |
-| `String[] rooms = {"Dirty", "Dirty"};` | Environment array: index 0 = A, index 1 = B. |
-| `int location = 0;` | Agent starts in A. |
-| `int score = 0;` | Performance measure. |
-| `for (int step = 1; step <= 7; step++)` | Bounded time-step loop. |
-| `String action = agent(location == 0 ? "A" : "B", status);` | Converts the index to a room name, then decides. |
-| `if (action.equals("Suck"))` | Act: clean and score. |
-| `location = action.equals("Right") ? 1 : 0;` | Act: move to the other room. |
-| `score--;` | Movement penalty. |
-| `if (rooms[0].equals("Clean") && rooms[1].equals("Clean")) break;` | Stop when both rooms are clean. |
-| `System.out.println(...)` | Prints the trace, final state and score. |
+| `static int performance = 0;` | The performance measure, stored as a class variable. |
+| `static String act(String location, String status)` | The **agent program**; it receives only the current percept. |
+| `if (status.equals("Dirty"))` | **Rule 1**: dirty room -> ... |
+| `return "Suck";` | ... Suck. |
+| `else if (location.equals("A"))` | **Rule 2**: clean room A -> ... |
+| `return "Right";` | ... move right to B. |
+| `else` / `return "Left";` | **Rule 3**: clean room B -> move left to A. |
+| `String[] environment = {"Dirty", "Dirty"};` | The environment; index 0 = A, index 1 = B. |
+| `int location = 0;` | The agent starts in room A (index 0). |
+| `for (int step = 1; step <= 4; step++)` | Exactly 4 time steps, so the loop always terminates. |
+| `String status = environment[location];` | **SENSE** the current room. |
+| `String action = act(location == 0 ? "A" : "B", status);` | Converts the index to a room name, then **DECIDES**. |
+| `if (action.equals("Suck"))` | **ACT**: clean the room ... |
+| `environment[location] = "Clean";` / `performance += 10;` | ... and add 10 points. |
+| `else if (action.equals("Right"))` / `location = 1;` | Move to room B. |
+| `else if (action.equals("Left"))` / `location = 0;` | Move to room A. |
+| `System.out.println("Environment: ...")` | Prints the trace after every action. |
+| `System.out.println("Final Environment: ...")` | Final state after 4 steps. |
+| `System.out.println("Performance Score: ...");` | Final score: 2 sucks x 10 = 20. |
 
 ## 15. Sample Output
 
+### Python
+
 ```text
-Step 1 | A Dirty -> Suck
-Step 2 | A Clean -> Right
-Step 3 | B Dirty -> Suck
-Final rooms: {'A': 'Clean', 'B': 'Clean'}
-Score: 19
+Initial Environment: {'A': 'Dirty', 'B': 'Dirty'}
+Starting Location: A
+
+Step 1
+Location: A
+Status: Dirty
+Action: Suck
+Environment: {'A': 'Clean', 'B': 'Dirty'}
+
+Step 2
+Location: A
+Status: Clean
+Action: Right
+Environment: {'A': 'Clean', 'B': 'Dirty'}
+
+Step 3
+Location: B
+Status: Dirty
+Action: Suck
+Environment: {'A': 'Clean', 'B': 'Clean'}
+
+Step 4
+Location: B
+Status: Clean
+Action: Left
+Environment: {'A': 'Clean', 'B': 'Clean'}
+
+Final Environment: {'A': 'Clean', 'B': 'Clean'}
+Performance Score: 20
+```
+
+### Java
+
+```text
+Initial Environment: A=Dirty, B=Dirty
+Starting Location: A
+
+Step 1
+Location: A
+Status: Dirty
+Action: Suck
+Environment: A=Clean, B=Dirty
+
+Step 2
+Location: A
+Status: Clean
+Action: Right
+Environment: A=Clean, B=Dirty
+
+Step 3
+Location: B
+Status: Dirty
+Action: Suck
+Environment: A=Clean, B=Clean
+
+Step 4
+Location: B
+Status: Clean
+Action: Left
+Environment: A=Clean, B=Clean
+
+Final Environment: A=Clean, B=Clean
+Performance Score: 20
 ```

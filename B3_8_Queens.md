@@ -86,7 +86,7 @@ Q . . . . . . .
 
 ## 9. Conclusion
 
-Backtracking search was implemented for the 8-Queens problem. The program correctly found valid queen placements satisfying all row, column and diagonal constraints, and was extended to enumerate all 92 solutions, confirming the correctness and effectiveness of constraint-based backtracking.
+Backtracking search was implemented for the 8-Queens problem. The program placed one queen per column, checked row and diagonal conflicts before every placement, and backtracked whenever a partial board could not be completed. It correctly produced one valid arrangement of 8 queens on the 8 x 8 board.
 
 ## 10. Viva Voce Questions
 
@@ -119,92 +119,153 @@ java EightQueens
 ## 12. Python Code
 
 ```python
-# B3 - 8-Queens using backtracking
+# Backtracking search for the 8-Queens problem
 
 N = 8
-pos = [-1] * N          # pos[col] = row of the queen
-count = 0
 
 
-def safe(row, col):
-    """Check row and diagonal conflicts with earlier columns."""
-    for c in range(col):
-        if pos[c] == row or abs(pos[c] - row) == col - c:
+def print_board(board):
+    for row in board:
+        print(" ".join("Q" if cell else "." for cell in row))
+    print()
+
+
+def is_safe(board, row, col):
+    # Check left side of current row
+    for i in range(col):
+        if board[row][i]:
             return False
+
+    # Check upper-left diagonal
+    i, j = row, col
+    while i >= 0 and j >= 0:
+        if board[i][j]:
+            return False
+        i -= 1
+        j -= 1
+
+    # Check lower-left diagonal
+    i, j = row, col
+    while i < N and j >= 0:
+        if board[i][j]:
+            return False
+        i += 1
+        j -= 1
+
     return True
 
 
-def solve(col):
-    global count
-    if col == N:                    # all queens placed
-        count += 1
-        if count == 1:
-            show()
-        return
+def solve_queens(board, col):
+    # All queens placed
+    if col >= N:
+        return True
 
     for row in range(N):
-        if safe(row, col):
-            pos[col] = row
-            solve(col + 1)
-            pos[col] = -1           # backtrack
+        if is_safe(board, row, col):
+            # Place queen
+            board[row][col] = 1
+
+            # Recur for next column
+            if solve_queens(board, col + 1):
+                return True
+
+            # Backtrack
+            board[row][col] = 0
+
+    return False
 
 
-def show():
-    print("First solution:")
-    for r in range(N):
-        print(" ".join("Q" if pos[c] == r else "." for c in range(N)))
+# Main program
+board = [[0 for _ in range(N)] for _ in range(N)]
 
-
-solve(0)
-print("Total solutions:", count)
+if solve_queens(board, 0):
+    print("Solution Found:\n")
+    print_board(board)
+else:
+    print("No Solution Exists")
 ```
 
 ## 13. Java Code
 
 ```java
-import java.util.Arrays;
-
 public class EightQueens {
-    static final int N = 8;
-    static int[] pos = new int[N];   // pos[col] = row
-    static int count = 0;
 
-    static boolean safe(int row, int col) {
-        for (int c = 0; c < col; c++)
-            if (pos[c] == row || Math.abs(pos[c] - row) == col - c)
+    static final int N = 8;
+    static int[][] board = new int[N][N];
+
+    static void printBoard() {
+        for (int[] row : board) {
+            for (int col = 0; col < N; col++) {
+                System.out.print((col == 0 ? "" : " ") + (row[col] == 1 ? "Q" : "."));
+            }
+            System.out.println();
+        }
+        System.out.println();
+    }
+
+    static boolean isSafe(int row, int col) {
+        // Check left side of current row
+        for (int i = 0; i < col; i++) {
+            if (board[row][i] == 1) {
                 return false;
+            }
+        }
+
+        // Check upper-left diagonal
+        int i = row, j = col;
+        while (i >= 0 && j >= 0) {
+            if (board[i][j] == 1) {
+                return false;
+            }
+            i--;
+            j--;
+        }
+
+        // Check lower-left diagonal
+        i = row;
+        j = col;
+        while (i < N && j >= 0) {
+            if (board[i][j] == 1) {
+                return false;
+            }
+            i++;
+            j--;
+        }
+
         return true;
     }
 
-    static void solve(int col) {
-        if (col == N) {              // all queens placed
-            count++;
-            if (count == 1) show();
-            return;
+    static boolean solveQueens(int col) {
+        // All queens placed
+        if (col >= N) {
+            return true;
         }
 
         for (int row = 0; row < N; row++) {
-            if (safe(row, col)) {
-                pos[col] = row;
-                solve(col + 1);
-                pos[col] = -1;       // backtrack
+            if (isSafe(row, col)) {
+                // Place queen
+                board[row][col] = 1;
+
+                // Recur for next column
+                if (solveQueens(col + 1)) {
+                    return true;
+                }
+
+                // Backtrack
+                board[row][col] = 0;
             }
         }
-    }
 
-    static void show() {
-        System.out.println("First solution:");
-        for (int r = 0; r < N; r++) {
-            for (int c = 0; c < N; c++)
-                System.out.print(pos[c] == r ? "Q " : ". ");
-            System.out.println();
-        }
+        return false;
     }
 
     public static void main(String[] args) {
-        Arrays.fill(pos, -1);
-        solve(0);
-        System.out.println("Total solutions: " + count);
+        if (solveQueens(0)) {
+            System.out.println("Solution Found:\n");
+            printBoard();
+        } else {
+            System.out.println("No Solution Exists");
+        }
     }
 }
 ```
@@ -216,42 +277,53 @@ public class EightQueens {
 | Code block | Explanation |
 |---|---|
 | `N = 8` | Board size and number of queens. |
-| `pos = [-1] * N` | `pos[col]` stores the row of the queen in that column. |
-| `count = 0` | Counts all valid solutions. |
-| `def safe(row, col):` | Checks whether a queen can be placed at `(row, col)`. |
-| `for c in range(col):` | Only earlier columns need to be checked (one queen per column). |
-| `if pos[c] == row` | Same row → conflict. |
-| `abs(pos[c] - row) == col - c` | Same diagonal → conflict (row distance = column distance). |
-| `def solve(col):` | Recursive backtracking, column by column. |
-| `if col == N:` | Base case: all 8 queens are placed. |
-| `count += 1` / `show()` | Count the solution; print the first one. |
-| `for row in range(N):` | Try every row in the current column. |
-| `if safe(row, col):` | Place only if there is no conflict. |
-| `pos[col] = row` / `solve(col + 1)` | Place the queen and recurse. |
-| `pos[col] = -1` | **Backtrack**: remove the queen and try the next row. |
-| `def show():` | Prints `Q` and `.` for the board. |
+| `def print_board(board):` | Prints the board using `Q` for a queen and `.` for an empty cell. |
+| `" ".join("Q" if cell else "." for cell in row)` | Builds one row as text. |
+| `def is_safe(board, row, col):` | Checks whether a queen can be placed at `(row, col)`. |
+| left row loop | Is there a queen in the same row to the left? |
+| upper-left `while` loop | Is there a queen on the upper-left diagonal? |
+| lower-left `while` loop | Is there a queen on the lower-left diagonal? |
+| `return True` | No conflict, so the cell is safe. |
+| `def solve_queens(board, col):` | Places queens column by column. |
+| `if col >= N: return True` | **Base case**: all 8 queens are placed. |
+| `for row in range(N):` | Tries every row in the current column. |
+| `if is_safe(board, row, col):` | Only places a queen if there is no conflict. |
+| `board[row][col] = 1` | Places the queen. |
+| `if solve_queens(board, col + 1): return True` | Recurses; keeps the queen if the rest of the board solves. |
+| `board[row][col] = 0` | **Backtrack**: removes the queen and tries the next row. |
+| `return False` | No row in this column works, so the caller must backtrack. |
+| `board = [[0 for _ in range(N)] for _ in range(N)]` | Creates an empty 8x8 board. |
+| `if solve_queens(board, 0): print_board(board)` | Starts at column 0 and prints the solution. |
 
 ### Java code
 
 | Code block | Explanation |
 |---|---|
-| `static final int N = 8;` | Board size. |
-| `static int[] pos = new int[N];` | `pos[col]` = row of the queen. |
-| `static boolean safe(int row, int col)` | Same safety check as Python. |
-| `pos[c] == row` | Row conflict. |
-| `Math.abs(pos[c] - row) == col - c` | Diagonal conflict. |
-| `static void solve(int col)` | Recursive backtracking. |
-| `if (col == N)` | All queens placed. |
-| `count++; if (count == 1) show();` | Count and print the first solution. |
-| `pos[col] = row; solve(col + 1);` | Place and recurse. |
-| `pos[col] = -1;` | Backtrack. |
-| `Arrays.fill(pos, -1);` | Initialise every column as empty. |
-| `System.out.println("Total solutions: " + count);` | Prints 92. |
+| `static final int N = 8;` | Board size and number of queens. |
+| `static int[][] board = new int[N][N];` | Empty 8x8 board; `1` means a queen. |
+| `static void printBoard()` | Prints `Q` and `.` for each cell. |
+| `static boolean isSafe(int row, int col)` | Checks whether a queen can go at `(row, col)`. |
+| left row loop | Same row to the left? |
+| upper-left `while` loop | Upper-left diagonal? |
+| lower-left `while` loop | Lower-left diagonal? |
+| `return true;` | No conflict. |
+| `static boolean solveQueens(int col)` | Places queens column by column. |
+| `if (col >= N) return true;` | **Base case**: all queens placed. |
+| `for (int row = 0; row < N; row++)` | Tries every row. |
+| `if (isSafe(row, col))` | Checks for conflicts first. |
+| `board[row][col] = 1;` | Places the queen. |
+| `if (solveQueens(col + 1)) return true;` | Recurses and keeps the queen if the rest solves. |
+| `board[row][col] = 0;` | **Backtrack**. |
+| `return false;` | No row works in this column. |
+| `main(...)` | Calls `solveQueens(0)` and prints the solution. |
 
 ## 15. Sample Output
 
+### Python
+
 ```text
-First solution:
+Solution Found:
+
 Q . . . . . . .
 . . . . . . Q .
 . . . . Q . . .
@@ -260,5 +332,19 @@ Q . . . . . . .
 . . . Q . . . .
 . . . . . Q . .
 . . Q . . . . .
-Total solutions: 92
+```
+
+### Java
+
+```text
+Solution Found:
+
+Q . . . . . . .
+. . . . . . Q .
+. . . . Q . . .
+. . . . . . . Q
+. Q . . . . . .
+. . . Q . . . .
+. . . . . Q . .
+. . Q . . . . .
 ```

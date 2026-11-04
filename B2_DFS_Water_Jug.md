@@ -91,7 +91,7 @@ Each arrow is one of the six allowed actions.
 
 ## 9. Conclusion
 
-DFS was implemented and used to solve the chosen classic AI puzzle. The algorithm successfully found a valid solution path by exploring the state space depth-first with backtracking, and its memory efficiency compared to BFS was observed on the given problem instances.
+DFS was implemented using a LIFO stack. It found a valid 4-step solution for the 4-litre / 3-litre jug problem and printed the action that produced every state. The visited set prevented the same state from being pushed twice.
 
 ## 10. Viva Voce Questions
 
@@ -124,43 +124,46 @@ java DFSWaterJug
 ## 12. Python Code
 
 ```python
-# B2 - DFS for the Water Jug Problem
+# Water Jug Problem using DFS
 
-CAP_A, CAP_B = 4, 3
-TARGET = 2
+def dfs(jug1, jug2, target):
+    stack = [((0, 0), [])]      # (state, path)
+    visited = {(0, 0)}
 
+    while stack:
+        (x, y), path = stack.pop()
 
-def moves(a, b):
-    """The six legal actions from state (a, b)."""
-    p = min(a, CAP_B - b)       # water poured A -> B
-    q = min(b, CAP_A - a)       # water poured B -> A
-    return [
-        (CAP_A, b, "Fill A"),
-        (a, CAP_B, "Fill B"),
-        (0, b, "Empty A"),
-        (a, 0, "Empty B"),
-        (a - p, b + p, "Pour A to B"),
-        (a + q, b - q, "Pour B to A"),
-    ]
+        # Check if target is reached
+        if x == target or y == target:
+            for action, state in path:
+                print(action, "->", state)
+            print("\nTarget achieved in", len(path), "steps!")
+            return
 
+        # Possible moves: (new state, action name)
+        next_states = [
+            ((jug1, y), "Fill Jug1"),
+            ((x, jug2), "Fill Jug2"),
+            ((0, y), "Empty Jug1"),
+            ((x, 0), "Empty Jug2"),
+            ((max(0, x - (jug2 - y)), min(jug2, y + x)), "Pour Jug1 -> Jug2"),
+            ((min(jug1, x + y), max(0, y - (jug1 - x))), "Pour Jug2 -> Jug1")
+        ]
 
-stack = [((0, 0), [])]          # (state, path so far)
-visited = {(0, 0)}
+        for state, action in next_states:
+            if state not in visited:
+                visited.add(state)
+                stack.append((state, path + [(action, state)]))
 
-while stack:
-    (a, b), path = stack.pop()  # LIFO = depth first
-    if a == TARGET or b == TARGET:
-        for action, state in path:
-            print(action, "->", state)
-        print("Goal reached in", len(path), "steps")
-        break
-
-    for na, nb, action in moves(a, b):
-        if (na, nb) not in visited:
-            visited.add((na, nb))
-            stack.append(((na, nb), path + [(action, (na, nb))]))
-else:
     print("No solution found")
+
+
+# Driver Code
+jug1_capacity = 4
+jug2_capacity = 3
+target = 2
+
+dfs(jug1_capacity, jug2_capacity, target)
 ```
 
 ## 13. Java Code
@@ -169,57 +172,84 @@ else:
 import java.util.*;
 
 public class DFSWaterJug {
-    static final int CAP_A = 4, CAP_B = 3, TARGET = 2;
 
+    // One node = current state + the actions taken to reach it
     static class Node {
-        int a, b;
+        int x, y;
         List<String> path;
 
-        Node(int a, int b, List<String> path) {
-            this.a = a;
-            this.b = b;
+        Node(int x, int y, List<String> path) {
+            this.x = x;
+            this.y = y;
             this.path = path;
         }
     }
 
-    static void push(ArrayDeque<Node> stack, Set<String> visited,
-                     int a, int b, String action, List<String> path) {
-        String key = a + "," + b;
-        if (visited.contains(key)) return;
-        visited.add(key);
-        List<String> newPath = new ArrayList<>(path);
-        newPath.add(action + " -> (" + a + ", " + b + ")");
-        stack.push(new Node(a, b, newPath));
-    }
-
-    public static void main(String[] args) {
-        ArrayDeque<Node> stack = new ArrayDeque<>();
+    static void dfs(int jug1, int jug2, int target) {
+        Stack<Node> stack = new Stack<>();
         Set<String> visited = new HashSet<>();
 
         stack.push(new Node(0, 0, new ArrayList<>()));
         visited.add("0,0");
 
         while (!stack.isEmpty()) {
-            Node cur = stack.pop();     // LIFO = depth first
+            Node current = stack.pop();
+            int x = current.x;
+            int y = current.y;
 
-            if (cur.a == TARGET || cur.b == TARGET) {
-                for (String step : cur.path) System.out.println(step);
-                System.out.println("Goal reached in " + cur.path.size() + " steps");
+            // Check if target is reached
+            if (x == target || y == target) {
+                for (String line : current.path) {
+                    System.out.println(line);
+                }
+                System.out.println("\nTarget achieved in " + current.path.size() + " steps!");
                 return;
             }
 
-            int p = Math.min(cur.a, CAP_B - cur.b);   // A -> B
-            int q = Math.min(cur.b, CAP_A - cur.a);   // B -> A
+            // Possible moves: new state + action name
+            int[][] states = {
+                {jug1, y},                              // Fill Jug1
+                {x, jug2},                              // Fill Jug2
+                {0, y},                                 // Empty Jug1
+                {x, 0},                                 // Empty Jug2
+                {Math.max(0, x - (jug2 - y)), Math.min(jug2, y + x)},  // Pour Jug1 -> Jug2
+                {Math.min(jug1, x + y), Math.max(0, y - (jug1 - x))}   // Pour Jug2 -> Jug1
+            };
 
-            push(stack, visited, CAP_A, cur.b, "Fill A", cur.path);
-            push(stack, visited, cur.a, CAP_B, "Fill B", cur.path);
-            push(stack, visited, 0, cur.b, "Empty A", cur.path);
-            push(stack, visited, cur.a, 0, "Empty B", cur.path);
-            push(stack, visited, cur.a - p, cur.b + p, "Pour A to B", cur.path);
-            push(stack, visited, cur.a + q, cur.b - q, "Pour B to A", cur.path);
+            String[] actions = {
+                "Fill Jug1",
+                "Fill Jug2",
+                "Empty Jug1",
+                "Empty Jug2",
+                "Pour Jug1 -> Jug2",
+                "Pour Jug2 -> Jug1"
+            };
+
+            for (int i = 0; i < states.length; i++) {
+                int nx = states[i][0];
+                int ny = states[i][1];
+                String key = nx + "," + ny;
+
+                if (!visited.contains(key)) {
+                    visited.add(key);
+
+                    List<String> newPath = new ArrayList<>(current.path);
+                    newPath.add(actions[i] + " -> (" + nx + ", " + ny + ")");
+
+                    stack.push(new Node(nx, ny, newPath));
+                }
+            }
         }
 
         System.out.println("No solution found");
+    }
+
+    public static void main(String[] args) {
+        int jug1Capacity = 4;
+        int jug2Capacity = 3;
+        int target = 2;
+
+        dfs(jug1Capacity, jug2Capacity, target);
     }
 }
 ```
@@ -230,52 +260,70 @@ public class DFSWaterJug {
 
 | Code block | Explanation |
 |---|---|
-| `CAP_A, CAP_B = 4, 3` | Capacities of the two jugs. |
-| `TARGET = 2` | We want exactly 2 litres in either jug. |
-| `def moves(a, b):` | Returns the six legal actions from state `(a, b)`. |
-| `p = min(a, CAP_B - b)` | Water that can be poured from A to B. |
-| `q = min(b, CAP_A - a)` | Water that can be poured from B to A. |
-| `(CAP_A, b, "Fill A")` | Fill jug A completely. |
-| `(a, CAP_B, "Fill B")` | Fill jug B completely. |
-| `(0, b, "Empty A")` | Empty jug A. |
-| `(a, 0, "Empty B")` | Empty jug B. |
-| `(a - p, b + p, "Pour A to B")` | Pour A into B until A is empty or B is full. |
-| `(a + q, b - q, "Pour B to A")` | Pour B into A until B is empty or A is full. |
-| `stack = [((0, 0), [])]` | **Stack** for DFS; each item is `(state, path)`. |
-| `visited = {(0, 0)}` | Cycle check: never push the same state twice. |
-| `(a, b), path = stack.pop()` | **LIFO**: takes the most recent state → depth-first. |
-| `if a == TARGET or b == TARGET:` | Goal test. |
-| `for action, state in path:` | Prints the solution actions in order. |
-| `for na, nb, action in moves(a, b):` | Tries every legal next state. |
-| `if (na, nb) not in visited:` | Skips states already reached. |
-| `visited.add((na, nb))` | Marks the state before pushing. |
-| `stack.append(((na, nb), path + [...]))` | Pushes the successor with its updated path. |
-| `else: print("No solution found")` | Runs when the stack empties without reaching the goal. |
+| `def dfs(jug1, jug2, target):` | Depth-first search over the jug states. |
+| `stack = [((0, 0), [])]` | **Stack** for DFS; each item is `(state, path taken so far)`. |
+| `visited = {(0, 0)}` | Both jugs start empty, and that state is already seen. |
+| `(x, y), path = stack.pop()` | **LIFO**: takes the most recently added state, so the search goes deep first. |
+| `if x == target or y == target:` | Goal test: either jug contains the target amount. |
+| `for action, state in path: print(action, "->", state)` | Prints the action and the state it produced, in order. |
+| `print("\nTarget achieved in", len(path), "steps!")` | Prints the number of actions in the solution. |
+| `return` | Stops the search once a solution is found. |
+| `next_states = [...]` | The six legal actions, each stored with its name. |
+| `((jug1, y), "Fill Jug1")` / `((x, jug2), "Fill Jug2")` | Fill either jug completely. |
+| `((0, y), "Empty Jug1")` / `((x, 0), "Empty Jug2")` | Empty either jug. |
+| `max(0, x - (jug2 - y))` / `min(jug2, y + x)` | Pour Jug1 -> Jug2; only the amount that fits in Jug2 moves. |
+| `min(jug1, x + y)` / `max(0, y - (jug1 - x))` | Pour Jug2 -> Jug1 without overflowing Jug1. |
+| `for state, action in next_states:` | Tries all six actions. |
+| `if state not in visited:` | Skips states already reached. |
+| `visited.add(state)` | Marks the state before pushing. |
+| `stack.append((state, path + [(action, state)]))` | Pushes the new state with the action added to its path. |
+| `print("No solution found")` | Runs when the stack empties without a solution. |
+| `jug1_capacity = 4` / `jug2_capacity = 3` / `target = 2` | Problem instance used in the lab. |
 
 ### Java code
 
 | Code block | Explanation |
 |---|---|
-| `static final int CAP_A = 4, CAP_B = 3, TARGET = 2;` | Problem constants. |
-| `static class Node` | Stores `a`, `b` and the path to this state. |
-| `static void push(...)` | Helper that checks `visited`, copies the path, adds the action and pushes. |
-| `String key = a + "," + b;` | One string key for the `Set`. |
-| `if (visited.contains(key)) return;` | Cycle check. |
-| `new ArrayList<>(path)` | Copies the path so branches do not share the same list. |
-| `ArrayDeque<Node> stack` | Stack for DFS (`push`/`pop` at the front). |
-| `Node cur = stack.pop();` | Takes the deepest state. |
-| `if (cur.a == TARGET \|\| cur.b == TARGET)` | Goal test. |
-| `int p = Math.min(cur.a, CAP_B - cur.b);` | Amount poured A → B. |
-| `int q = Math.min(cur.b, CAP_A - cur.a);` | Amount poured B → A. |
-| `push(...)` six times | Generates all six legal actions. |
-| `System.out.println(...)` | Prints the path and the number of steps. |
+| `static class Node` | Stores `x`, `y` and the path of actions used to reach this state. |
+| `Stack<Node> stack = new Stack<>();` | **LIFO** structure for DFS. |
+| `Set<String> visited = new HashSet<>();` | States already reached, stored as `"x,y"`. |
+| `stack.push(new Node(0, 0, new ArrayList<>()));` | Start with both jugs empty. |
+| `visited.add("0,0");` | Marks the start state. |
+| `Node current = stack.pop();` | Takes the deepest state. |
+| `if (x == target || y == target)` | Goal test. |
+| `for (String line : current.path)` | Prints the action path in order. |
+| `System.out.println("\nTarget achieved in " + current.path.size() + " steps!");` | Prints the solution length. |
+| `int[][] states = {...};` | The six resulting states after the six legal actions. |
+| `String[] actions = {...};` | Names of the six actions. |
+| `{Math.max(0, x - (jug2 - y)), Math.min(jug2, y + x)}` | Pour Jug1 -> Jug2, limited by the space in Jug2. |
+| `{Math.min(jug1, x + y), Math.max(0, y - (jug1 - x))}` | Pour Jug2 -> Jug1, limited by the space in Jug1. |
+| `for (int i = 0; i < states.length; i++)` | Tries all six actions. |
+| `if (!visited.contains(key))` | Skips repeated states. |
+| `List<String> newPath = new ArrayList<>(current.path);` | Copies the path before adding the new action. |
+| `newPath.add(actions[i] + " -> (" + nx + ", " + ny + ")");` | Records the action and the state it produced. |
+| `stack.push(new Node(nx, ny, newPath));` | Pushes the successor. |
+| `System.out.println("No solution found");` | Runs when the stack becomes empty. |
 
 ## 15. Sample Output
 
+### Python
+
 ```text
-Fill B -> (0, 3)
-Pour B to A -> (3, 0)
-Fill B -> (3, 3)
-Pour B to A -> (4, 2)
-Goal reached in 4 steps
+Fill Jug2 -> (0, 3)
+Pour Jug2 -> Jug1 -> (3, 0)
+Fill Jug2 -> (3, 3)
+Pour Jug2 -> Jug1 -> (4, 2)
+
+Target achieved in 4 steps!
+```
+
+### Java
+
+```text
+Fill Jug2 -> (0, 3)
+Pour Jug2 -> Jug1 -> (3, 0)
+Fill Jug2 -> (3, 3)
+Pour Jug2 -> Jug1 -> (4, 2)
+
+Target achieved in 4 steps!
 ```

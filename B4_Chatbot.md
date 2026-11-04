@@ -37,20 +37,23 @@ A rule-based chatbot maintains a knowledge base of **pattern-response pairs**. E
 
 ### Processing Pipeline
 
-1. **Pre-processing:** convert user input to lowercase, strip punctuation, and tokenise into words.
-2. **Pattern matching:** compare the pre-processed input (or its tokens) against the rule base, typically using regular expressions or keyword lookup, often trying rules in a priority order (more specific rules first).
-3. **Response generation:** when a rule matches, generate the response, substituting any captured groups from the input (as ELIZA-style reflection) if applicable.
-4. **Fallback:** if no rule matches, return a generic response (e.g., "Can you tell me more about that?") so the conversation does not break down.
+1. **Pre-processing:** convert the user input to lowercase and remove leading/trailing spaces with `strip()`.
+2. **Pattern matching:** compare the input against the rule base using `re.search()`, trying the rules in a fixed priority order (the first match wins).
+3. **Response generation:** when a rule matches, return its fixed response string.
+4. **Fallback:** if no rule matches, return "Sorry, I don't understand that." so the conversation does not break down.
 
-### Example Rule Base (Illustrative)
+### Rule Base Used in the Program
 
-| Pattern (keyword / regex) | Response template |
+| Pattern (regex) | Response |
 |---|---|
-| `hello\|hi\|hey` | Hello! How can I help you today? |
-| `my name is (.*)` | Nice to meet you, `\1`! |
-| `i am (.*)` | Why do you think you are `\1`? |
-| `bye\|quit\|exit` | Goodbye! Have a great day. |
-| (default / no match) | I'm not sure I understand — could you rephrase that? |
+| `\b(hi\|hello\|hey)\b` | Hello! How are you? |
+| `how are you` | I'm fine, thank you! |
+| `(your name\|who are you)` | I am a simple Rule-Based Chatbot. |
+| `what can you do` | I can answer basic questions using predefined rules. |
+| `(thank you\|thanks)` | You're welcome! |
+| `help` | Try asking me about my name, greetings, or how I am. |
+| exact input `bye` | Goodbye! Have a great day. |
+| (default / no match) | Sorry, I don't understand that. |
 
 ### Limitations of Rule-Based Chatbots
 
@@ -58,13 +61,13 @@ Rule-based chatbots can only respond well to inputs anticipated by their designe
 
 ## 7. Algorithm Steps
 
-1. Load the predefined pattern-response rule base.
+1. Load the predefined pattern-response rule base (or use the built-in `DEMO` list in demo mode).
 2. Loop: read user input.
-3. Pre-process the input (lowercase, strip punctuation).
-4. Try to match input against each rule's pattern in priority order.
-5. If matched, format and display the response (substituting captured text if needed).
+3. Pre-process the input: convert to lowercase and trim spaces.
+4. Try to match the input against each rule's pattern in priority order.
+5. If matched, display that rule's response.
 6. If not matched, display the fallback response.
-7. Exit the loop when the user enters an exit keyword (e.g., "bye").
+7. Exit the loop when the user enters `bye`.
 
 ## 8. Diagram
 
@@ -74,12 +77,12 @@ The manual shows the chatbot processing pipeline. In simple words:
 User input
    |
    v
-Pre-processing (lowercase, remove punctuation)
+Pre-processing (lowercase, trim spaces)
    |
    v
 Pattern matching against rule base
    |
-   +---- match found ----> Fill response template ----> Reply
+   +---- match found ----> Return fixed response ----> Reply
    |
    +---- no match -------> Fallback reply
 ```
@@ -133,98 +136,130 @@ java Chatbot
 ## 12. Python Code
 
 ```python
-# B4 - Rule-based chatbot using pattern matching
+# Simple chatbot using predefined rules and pattern matching
 
 import re
 import sys
 
-RULES = [
-    (r"\b(hi|hello|hey)\b", "Hello! How can I help you?"),
-    (r"my name is (\w+)", "Nice to meet you, {0}!"),
-    (r"\b(bye|exit|quit)\b", "Goodbye! Have a great day."),
-    (r"what is ai", "AI is the simulation of human intelligence by machines."),
-]
+
+def respond(user_input):
+    user_input = user_input.lower().strip()
+
+    if re.search(r"\b(hi|hello|hey)\b", user_input):
+        return "Hello! How are you?"
+
+    elif re.search(r"how are you", user_input):
+        return "I'm fine, thank you!"
+
+    elif re.search(r"(your name|who are you)", user_input):
+        return "I am a simple Rule-Based Chatbot."
+
+    elif re.search(r"what can you do", user_input):
+        return "I can answer basic questions using predefined rules."
+
+    elif re.search(r"(thank you|thanks)", user_input):
+        return "You're welcome!"
+
+    elif re.search(r"help", user_input):
+        return "Try asking me about my name, greetings, or how I am."
+
+    elif user_input == "bye":
+        return "Goodbye! Have a great day."
+
+    else:
+        return "Sorry, I don't understand that."
 
 
-def reply(text):
-    text = text.lower().strip()
-    for pattern, answer in RULES:
-        match = re.search(pattern, text)
-        if match:
-            if match.groups():
-                return answer.format(match.group(1))
-            return answer
-    return "Sorry, I don't understand."
-
-
-DEMO = ["Hello", "My name is Harsh", "What is AI?", "Tell me a joke", "bye"]
+DEMO = ["hello", "how are you", "who are you",
+        "what can you do", "thanks", "help", "bye"]
 
 if "--demo" in sys.argv:
     for line in DEMO:
         print("You:", line)
-        print("Bot:", reply(line))
+        print("Bot:", respond(line))
 else:
+    print("=== Simple Chatbot ===")
+    print("Type 'bye' to exit.\n")
+
     while True:
-        line = input("You: ")
-        print("Bot:", reply(line))
-        if re.search(r"\b(bye|exit|quit)\b", line.lower()):
+        user_input = input("You: ")
+        print("Bot:", respond(user_input))
+
+        if user_input.lower().strip() == "bye":
             break
 ```
 
 ## 13. Java Code
 
 ```java
-import java.util.*;
-import java.util.regex.*;
+import java.util.Scanner;
+import java.util.regex.Pattern;
 
 public class Chatbot {
-    static class Rule {
-        Pattern pattern;
-        String answer;
 
-        Rule(String regex, String answer) {
-            this.pattern = Pattern.compile(regex);
-            this.answer = answer;
+    static String respond(String userInput) {
+        userInput = userInput.toLowerCase().trim();
+
+        if (Pattern.compile("\\b(hi|hello|hey)\\b").matcher(userInput).find()) {
+            return "Hello! How are you?";
+
+        } else if (Pattern.compile("how are you").matcher(userInput).find()) {
+            return "I'm fine, thank you!";
+
+        } else if (Pattern.compile("(your name|who are you)").matcher(userInput).find()) {
+            return "I am a simple Rule-Based Chatbot.";
+
+        } else if (Pattern.compile("what can you do").matcher(userInput).find()) {
+            return "I can answer basic questions using predefined rules.";
+
+        } else if (Pattern.compile("(thank you|thanks)").matcher(userInput).find()) {
+            return "You're welcome!";
+
+        } else if (Pattern.compile("help").matcher(userInput).find()) {
+            return "Try asking me about my name, greetings, or how I am.";
+
+        } else if (userInput.equals("bye")) {
+            return "Goodbye! Have a great day.";
+
+        } else {
+            return "Sorry, I don't understand that.";
         }
-    }
-
-    static Rule[] rules = {
-        new Rule("\\b(hi|hello|hey)\\b", "Hello! How can I help you?"),
-        new Rule("my name is (\\w+)", "Nice to meet you, {0}!"),
-        new Rule("\\b(bye|exit|quit)\\b", "Goodbye! Have a great day."),
-        new Rule("what is ai", "AI is the simulation of human intelligence by machines.")
-    };
-
-    static String reply(String text) {
-        text = text.toLowerCase().trim();
-        for (Rule rule : rules) {
-            Matcher m = rule.pattern.matcher(text);
-            if (m.find()) {
-                if (m.groupCount() > 0)
-                    return rule.answer.replace("{0}", m.group(1));
-                return rule.answer;
-            }
-        }
-        return "Sorry, I don't understand.";
     }
 
     public static void main(String[] args) {
-        if (args.length > 0 && args[0].equals("--demo")) {
-            String[] demo = {"Hello", "My name is Harsh", "What is AI?",
-                             "Tell me a joke", "bye"};
-            for (String line : demo) {
-                System.out.println("You: " + line);
-                System.out.println("Bot: " + reply(line));
+        String[] demo = {
+            "hello", "how are you", "who are you",
+            "what can you do", "thanks", "help", "bye"
+        };
+
+        boolean demoMode = false;
+        for (String arg : args) {
+            if (arg.equals("--demo")) {
+                demoMode = true;
             }
-            return;
         }
 
-        Scanner sc = new Scanner(System.in);
-        while (true) {
-            System.out.print("You: ");
-            String line = sc.nextLine();
-            System.out.println("Bot: " + reply(line));
-            if (line.toLowerCase().matches(".*\\b(bye|exit|quit)\\b.*")) break;
+        if (demoMode) {
+            for (String line : demo) {
+                System.out.println("You: " + line);
+                System.out.println("Bot: " + respond(line));
+            }
+
+        } else {
+            System.out.println("=== Simple Chatbot ===");
+            System.out.println("Type 'bye' to exit.\n");
+
+            Scanner sc = new Scanner(System.in);
+
+            while (true) {
+                System.out.print("You: ");
+                String userInput = sc.nextLine();
+                System.out.println("Bot: " + respond(userInput));
+
+                if (userInput.toLowerCase().trim().equals("bye")) {
+                    break;
+                }
+            }
         }
     }
 }
@@ -236,50 +271,84 @@ public class Chatbot {
 
 | Code block | Explanation |
 |---|---|
-| `RULES = [...]` | The rule base: each item is a `(regex pattern, response)` pair. |
-| `r"\b(hi\|hello\|hey)\b"` | Matches whole words only, so "this" does not match "hi". |
-| `r"my name is (\w+)"` | `(\w+)` **captures** the name so it can be reused. |
-| `{0}` | Placeholder replaced by the captured name. |
-| `def reply(text):` | Main chatbot function. |
-| `text = text.lower().strip()` | Pre-processing: lowercase and trim spaces. |
-| `for pattern, answer in RULES:` | Tries each rule in priority order. |
-| `match = re.search(pattern, text)` | Searches anywhere in the input. |
-| `if match.groups():` | True when the pattern captured something. |
-| `return answer.format(match.group(1))` | Fills `{0}` with the captured text. |
-| `return answer` | No capture → fixed response. |
-| `return "Sorry, I don't understand."` | **Fallback** when no rule matches. |
-| `if "--demo" in sys.argv:` | Runs a fixed conversation for easy demonstration. |
-| `else: while True: ...` | Interactive mode; exits on bye/exit/quit. |
+| `import re` | Regular expressions for pattern matching. |
+| `import sys` | Used to read the `--demo` command-line argument. |
+| `def respond(user_input):` | One function holds the complete rule base. |
+| `user_input = user_input.lower().strip()` | Normalises the input: lowercase and remove extra spaces. |
+| `if re.search(r"\b(hi\|hello\|hey)\b", user_input):` | Greeting rule; `\b` matches whole words, so "this" does not match "hi". |
+| `return "Hello! How are you?"` | Reply for a greeting. |
+| `elif re.search(r"how are you", ...)` | How-are-you rule. |
+| `elif re.search(r"(your name\|who are you)", ...)` | Name rule. |
+| `elif re.search(r"what can you do", ...)` | Capability rule. |
+| `elif re.search(r"(thank you\|thanks)", ...)` | Thanks rule. |
+| `elif re.search(r"help", ...)` | Help rule. |
+| `elif user_input == "bye":` | Exact exit phrase. |
+| `else: return "Sorry, I don't understand that."` | **Fallback** when no rule matches. |
+| `DEMO = [...]` | Fixed inputs used for a repeatable demonstration. |
+| `if "--demo" in sys.argv:` | Runs the demo without typing. |
+| `for line in DEMO: print(...)` | Shows the question and the bot's reply. |
+| `else:` | Interactive mode. |
+| `while True:` / `input(...)` / `print(...)` | Chat loop. |
+| `if user_input.lower().strip() == "bye": break` | Exits after the farewell. |
 
 ### Java code
 
 | Code block | Explanation |
 |---|---|
-| `static class Rule` | Stores a compiled `Pattern` and its response. |
-| `Pattern.compile(regex)` | Compiles each regex once. |
-| `static Rule[] rules = {...}` | Rule base, checked top to bottom. |
-| `static String reply(String text)` | Main chatbot function. |
-| `text = text.toLowerCase().trim();` | Pre-processing. |
-| `Matcher m = rule.pattern.matcher(text);` | Creates a matcher for one rule. |
-| `if (m.find())` | Rule matches anywhere in the input. |
-| `if (m.groupCount() > 0)` | A capture group exists. |
-| `rule.answer.replace("{0}", m.group(1))` | Inserts the captured text. |
-| `return "Sorry, I don't understand.";` | Fallback. |
-| `if (args[0].equals("--demo"))` | Demo mode with fixed inputs. |
+| `static String respond(String userInput)` | One method holds the complete rule base. |
+| `userInput = userInput.toLowerCase().trim();` | Normalises the input. |
+| `Pattern.compile("\\b(hi\|hello\|hey)\\b").matcher(userInput).find()` | Greeting rule; `\b` matches whole words only. |
+| `return "Hello! How are you?";` | Reply for a greeting. |
+| `Pattern.compile("how are you")...` | How-are-you rule. |
+| `Pattern.compile("(your name\|who are you)")...` | Name rule. |
+| `Pattern.compile("what can you do")...` | Capability rule. |
+| `Pattern.compile("(thank you\|thanks)")...` | Thanks rule. |
+| `Pattern.compile("help")...` | Help rule. |
+| `else if (userInput.equals("bye"))` | Exact exit phrase. |
+| `else { return "Sorry, I don't understand that."; }` | **Fallback**. |
+| `String[] demo = {...};` | Fixed inputs for demonstration. |
+| `for (String arg : args)` | Looks for the `--demo` argument. |
+| `if (demoMode)` | Runs the fixed conversation. |
 | `Scanner sc = new Scanner(System.in);` | Interactive mode. |
-| `line.toLowerCase().matches(...)` | Exit check for bye/exit/quit. |
+| `while (true)` / `sc.nextLine()` / `respond(...)` | Chat loop. |
+| `if (userInput.toLowerCase().trim().equals("bye")) break;` | Exits after the farewell. |
 
 ## 15. Sample Output
 
+### Python
+
 ```text
-You: Hello
-Bot: Hello! How can I help you?
-You: My name is Harsh
-Bot: Nice to meet you, harsh!
-You: What is AI?
-Bot: AI is the simulation of human intelligence by machines.
-You: Tell me a joke
-Bot: Sorry, I don't understand.
+You: hello
+Bot: Hello! How are you?
+You: how are you
+Bot: I'm fine, thank you!
+You: who are you
+Bot: I am a simple Rule-Based Chatbot.
+You: what can you do
+Bot: I can answer basic questions using predefined rules.
+You: thanks
+Bot: You're welcome!
+You: help
+Bot: Try asking me about my name, greetings, or how I am.
+You: bye
+Bot: Goodbye! Have a great day.
+```
+
+### Java
+
+```text
+You: hello
+Bot: Hello! How are you?
+You: how are you
+Bot: I'm fine, thank you!
+You: who are you
+Bot: I am a simple Rule-Based Chatbot.
+You: what can you do
+Bot: I can answer basic questions using predefined rules.
+You: thanks
+Bot: You're welcome!
+You: help
+Bot: Try asking me about my name, greetings, or how I am.
 You: bye
 Bot: Goodbye! Have a great day.
 ```

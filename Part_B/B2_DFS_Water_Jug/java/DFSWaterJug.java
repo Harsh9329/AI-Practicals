@@ -1,56 +1,83 @@
 import java.util.*;
 
 public class DFSWaterJug {
-    static final int CAP_A = 4, CAP_B = 3, TARGET = 2;
 
+    // One node = current state + the actions taken to reach it
     static class Node {
-        int a, b;
+        int x, y;
         List<String> path;
 
-        Node(int a, int b, List<String> path) {
-            this.a = a;
-            this.b = b;
+        Node(int x, int y, List<String> path) {
+            this.x = x;
+            this.y = y;
             this.path = path;
         }
     }
 
-    static void push(ArrayDeque<Node> stack, Set<String> visited,
-                     int a, int b, String action, List<String> path) {
-        String key = a + "," + b;
-        if (visited.contains(key)) return;
-        visited.add(key);
-        List<String> newPath = new ArrayList<>(path);
-        newPath.add(action + " -> (" + a + ", " + b + ")");
-        stack.push(new Node(a, b, newPath));
-    }
-
-    public static void main(String[] args) {
-        ArrayDeque<Node> stack = new ArrayDeque<>();
+    static void dfs(int jug1, int jug2, int target) {
+        Stack<Node> stack = new Stack<>();
         Set<String> visited = new HashSet<>();
 
         stack.push(new Node(0, 0, new ArrayList<>()));
         visited.add("0,0");
 
         while (!stack.isEmpty()) {
-            Node cur = stack.pop();     // LIFO = depth first
+            Node current = stack.pop();
+            int x = current.x;
+            int y = current.y;
 
-            if (cur.a == TARGET || cur.b == TARGET) {
-                for (String step : cur.path) System.out.println(step);
-                System.out.println("Goal reached in " + cur.path.size() + " steps");
+            // Check if target is reached
+            if (x == target || y == target) {
+                for (String line : current.path) {
+                    System.out.println(line);
+                }
+                System.out.println("\nTarget achieved in " + current.path.size() + " steps!");
                 return;
             }
 
-            int p = Math.min(cur.a, CAP_B - cur.b);   // A -> B
-            int q = Math.min(cur.b, CAP_A - cur.a);   // B -> A
+            // Possible moves: new state + action name
+            int[][] states = {
+                {jug1, y},                              // Fill Jug1
+                {x, jug2},                              // Fill Jug2
+                {0, y},                                 // Empty Jug1
+                {x, 0},                                 // Empty Jug2
+                {Math.max(0, x - (jug2 - y)), Math.min(jug2, y + x)},  // Pour Jug1 -> Jug2
+                {Math.min(jug1, x + y), Math.max(0, y - (jug1 - x))}   // Pour Jug2 -> Jug1
+            };
 
-            push(stack, visited, CAP_A, cur.b, "Fill A", cur.path);
-            push(stack, visited, cur.a, CAP_B, "Fill B", cur.path);
-            push(stack, visited, 0, cur.b, "Empty A", cur.path);
-            push(stack, visited, cur.a, 0, "Empty B", cur.path);
-            push(stack, visited, cur.a - p, cur.b + p, "Pour A to B", cur.path);
-            push(stack, visited, cur.a + q, cur.b - q, "Pour B to A", cur.path);
+            String[] actions = {
+                "Fill Jug1",
+                "Fill Jug2",
+                "Empty Jug1",
+                "Empty Jug2",
+                "Pour Jug1 -> Jug2",
+                "Pour Jug2 -> Jug1"
+            };
+
+            for (int i = 0; i < states.length; i++) {
+                int nx = states[i][0];
+                int ny = states[i][1];
+                String key = nx + "," + ny;
+
+                if (!visited.contains(key)) {
+                    visited.add(key);
+
+                    List<String> newPath = new ArrayList<>(current.path);
+                    newPath.add(actions[i] + " -> (" + nx + ", " + ny + ")");
+
+                    stack.push(new Node(nx, ny, newPath));
+                }
+            }
         }
 
         System.out.println("No solution found");
+    }
+
+    public static void main(String[] args) {
+        int jug1Capacity = 4;
+        int jug2Capacity = 3;
+        int target = 2;
+
+        dfs(jug1Capacity, jug2Capacity, target);
     }
 }

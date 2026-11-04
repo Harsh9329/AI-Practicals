@@ -56,10 +56,9 @@ Backtracking is a depth-first search over partial assignments. At each step it:
 
 ### Constraint Propagation
 
-Constraint propagation techniques reduce the search space before/during backtracking by eliminating values from a variable's domain that cannot possibly satisfy the constraints. Two commonly combined techniques:
+Constraint propagation reduces the search space by eliminating values that cannot possibly satisfy the constraints. In this program, before any value is tried in a cell, `candidates(board, row, col)` builds the list of digits that do **not** already appear in that cell's row, column or 3 × 3 box. Illegal values are removed before recursion, so the branching factor is much smaller than trying all digits 1–9.
 
-- **Forward checking:** whenever a value is assigned to a cell, remove that value from the domains of all cells sharing its row, column, or sub-grid.
-- **Naked singles / constraint propagation:** if forward checking reduces a cell's domain to a single value, that value can be assigned immediately without further search, which cascades and often solves large portions of the grid without any guessing.
+More advanced solvers also use **forward checking** (removing a placed value from neighbouring domains) and **naked singles** (filling a cell when only one value remains), but the candidate-list check above is enough for this lab.
 
 ### Variable and Value Ordering Heuristics
 
@@ -69,14 +68,15 @@ Constraint propagation techniques reduce the search space before/during backtrac
 ## 7. Algorithm Steps
 
 1. Represent the Sudoku grid as a 9 × 9 array; initialise it with the given clues.
-2. Find the next empty cell (optionally using MRV).
-3. For each candidate digit 1–9 consistent with row/column/sub-grid constraints:
-   1. Place the digit (apply constraint propagation / forward checking).
+2. Find the first empty cell (scanning row by row).
+3. Build the candidate list for that cell with `candidates()` — only digits allowed by the row, column and 3 × 3 box.
+4. For each candidate digit:
+   1. Place the digit in the cell.
    2. Recursively attempt to solve the rest of the grid.
    3. If the recursive call succeeds, return success.
    4. Otherwise, undo the digit (backtrack) and try the next candidate.
-4. If no candidate works, return failure and backtrack to the previous cell.
-5. If all cells are filled consistently, the puzzle is solved.
+5. If no candidate works, return failure and backtrack to the previous cell.
+6. If no empty cell remains, the puzzle is solved.
 
 ## 8. Diagram
 
@@ -135,9 +135,73 @@ java SudokuSolver
 ## 12. Python Code
 
 ```python
-# A6 - Sudoku Solver: backtracking + constraint propagation
+# Sudoku Solver using Backtracking and Constraint Propagation
 
-BOARD = [
+def print_board(board):
+    for row in board:
+        print(row)
+
+
+def find_empty(board):
+    for i in range(9):
+        for j in range(9):
+            if board[i][j] == 0:
+                return (i, j)
+    return None
+
+
+def is_valid(board, num, pos):
+    row, col = pos
+
+    # Check row
+    for j in range(9):
+        if board[row][j] == num and j != col:
+            return False
+
+    # Check column
+    for i in range(9):
+        if board[i][col] == num and i != row:
+            return False
+
+    # Check 3x3 box
+    box_x = col // 3
+    box_y = row // 3
+
+    for i in range(box_y * 3, box_y * 3 + 3):
+        for j in range(box_x * 3, box_x * 3 + 3):
+            if board[i][j] == num and (i, j) != pos:
+                return False
+
+    return True
+
+
+def candidates(board, row, col):
+    # Constraint propagation: only legal numbers for this cell
+    return [num for num in range(1, 10) if is_valid(board, num, (row, col))]
+
+
+def solve(board):
+    empty = find_empty(board)
+
+    if not empty:
+        return True
+
+    row, col = empty
+
+    for num in candidates(board, row, col):
+        board[row][col] = num
+
+        if solve(board):
+            return True
+
+        # Backtrack
+        board[row][col] = 0
+
+    return False
+
+
+# Sudoku Puzzle (0 represents empty cell)
+board = [
     [5, 3, 0, 0, 7, 0, 0, 0, 0],
     [6, 0, 0, 1, 9, 5, 0, 0, 0],
     [0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -149,43 +213,21 @@ BOARD = [
     [0, 0, 0, 0, 8, 0, 0, 7, 9]
 ]
 
-def candidates(r, c):
-    """Values already used in this row, column and 3x3 box."""
-    used = set(BOARD[r]) | {BOARD[i][c] for i in range(9)}
-    br, bc = (r // 3) * 3, (c // 3) * 3
-    used |= {BOARD[i][j] for i in range(br, br + 3)
-             for j in range(bc, bc + 3)}
-    return [v for v in range(1, 10) if v not in used]
+print("Sudoku Puzzle:")
+print_board(board)
 
-
-def solve():
-    for r in range(9):
-        for c in range(9):
-            if BOARD[r][c] == 0:
-                for v in candidates(r, c):
-                    BOARD[r][c] = v
-                    if solve():
-                        return True
-                    BOARD[r][c] = 0     # backtrack
-                return False
-    return True
-
-
-def show():
-    for r in range(9):
-        if r in (3, 6):
-            print("-" * 21)
-        print(" ".join(str(v) if v else "." for v in BOARD[r]))
-
-
-show()
-print("Solved:", solve())
-show()
+if solve(board):
+    print("\nSolved Sudoku:")
+    print_board(board)
+else:
+    print("No solution exists.")
 ```
 
 ## 13. Java Code
 
 ```java
+import java.util.*;
+
 public class SudokuSolver {
     static int[][] board = {
         {5, 3, 0, 0, 7, 0, 0, 0, 0},
@@ -198,51 +240,73 @@ public class SudokuSolver {
         {0, 0, 0, 4, 1, 9, 0, 0, 5},
         {0, 0, 0, 0, 8, 0, 0, 7, 9}
     };
-    static boolean[] candidates(int r, int c) {
-        boolean[] used = new boolean[10];
-        for (int i = 0; i < 9; i++) {
-            used[board[r][i]] = true;
-            used[board[i][c]] = true;
-        }
-        int br = (r / 3) * 3, bc = (c / 3) * 3;
-        for (int i = br; i < br + 3; i++)
-            for (int j = bc; j < bc + 3; j++)
-                used[board[i][j]] = true;
-        return used;
+
+    static void printBoard() {
+        for (int[] row : board) System.out.println(Arrays.toString(row));
     }
 
-    static boolean solve() {
-        for (int r = 0; r < 9; r++) {
-            for (int c = 0; c < 9; c++) {
-                if (board[r][c] == 0) {
-                    boolean[] used = candidates(r, c);
-                    for (int v = 1; v <= 9; v++) {
-                        if (!used[v]) {
-                            board[r][c] = v;
-                            if (solve()) return true;
-                            board[r][c] = 0;    // backtrack
-                        }
-                    }
-                    return false;
-                }
-            }
-        }
+    static int[] findEmpty() {
+        for (int i = 0; i < 9; i++)
+            for (int j = 0; j < 9; j++)
+                if (board[i][j] == 0) return new int[]{i, j};
+        return null;
+    }
+
+    static boolean isValid(int num, int row, int col) {
+        // Check row
+        for (int j = 0; j < 9; j++)
+            if (board[row][j] == num && j != col) return false;
+
+        // Check column
+        for (int i = 0; i < 9; i++)
+            if (board[i][col] == num && i != row) return false;
+
+        // Check 3x3 box
+        int boxRow = (row / 3) * 3;
+        int boxCol = (col / 3) * 3;
+
+        for (int i = boxRow; i < boxRow + 3; i++)
+            for (int j = boxCol; j < boxCol + 3; j++)
+                if (board[i][j] == num && !(i == row && j == col)) return false;
+
         return true;
     }
 
-    static void show() {
-        for (int r = 0; r < 9; r++) {
-            if (r == 3 || r == 6) System.out.println("---------------------");
-            for (int c = 0; c < 9; c++)
-                System.out.print(board[r][c] == 0 ? ". " : board[r][c] + " ");
-            System.out.println();
+    static List<Integer> candidates(int row, int col) {
+        // Constraint propagation: only legal numbers for this cell
+        List<Integer> list = new ArrayList<>();
+        for (int num = 1; num <= 9; num++)
+            if (isValid(num, row, col)) list.add(num);
+        return list;
+    }
+
+    static boolean solve() {
+        int[] empty = findEmpty();
+        if (empty == null) return true;
+
+        int row = empty[0], col = empty[1];
+
+        for (int num : candidates(row, col)) {
+            board[row][col] = num;
+
+            if (solve()) return true;
+
+            // Backtrack
+            board[row][col] = 0;
         }
+        return false;
     }
 
     public static void main(String[] args) {
-        show();
-        System.out.println("Solved: " + solve());
-        show();
+        System.out.println("Sudoku Puzzle:");
+        printBoard();
+
+        if (solve()) {
+            System.out.println("\nSolved Sudoku:");
+            printBoard();
+        } else {
+            System.out.println("No solution exists.");
+        }
     }
 }
 ```
@@ -253,63 +317,103 @@ public class SudokuSolver {
 
 | Code block | Explanation |
 |---|---|
-| `BOARD = [...]` | The puzzle as a 9×9 list. `0` means an empty cell. |
-| `def candidates(r, c):` | **Constraint propagation**: finds all values still legal for cell `(r, c)`. |
-| `used = set(BOARD[r]) \| {BOARD[i][c] for i in range(9)}` | Collects values already used in the same row and column. |
-| `br, bc = (r // 3) * 3, (c // 3) * 3` | Top-left corner of the 3×3 box that contains the cell. |
-| `used \|= {...}` | Adds all values already used inside that box. |
-| `return [v for v in range(1, 10) if v not in used]` | The candidate list: digits 1–9 minus the used values. |
-| `def solve():` | Recursive backtracking function. |
-| `for r in range(9): for c in range(9):` | Scans for the first empty cell. |
-| `if BOARD[r][c] == 0:` | Found an empty cell, so try to fill it. |
-| `for v in candidates(r, c):` | Tries only legal values — illegal ones are never tried. |
-| `BOARD[r][c] = v` | Places the candidate. |
-| `if solve(): return True` | Recurses; if the rest solves, keep this value. |
-| `BOARD[r][c] = 0` | **Backtrack**: undo the guess. |
-| `return False` | No value works, so the caller must backtrack. |
-| `def show():` | Prints the board with 3×3 separators. |
+| `def print_board(board):` | Prints the 9 rows of the puzzle. |
+| `def find_empty(board):` | Scans row by row for the first cell containing `0`. |
+| `return (i, j)` | Position of the empty cell. |
+| `return None` | No empty cell found, so the puzzle is full. |
+| `def is_valid(board, num, pos):` | Checks whether `num` can be placed at `pos` without breaking Sudoku rules. |
+| row loop | Is `num` already in the same row? |
+| column loop | Is `num` already in the same column? |
+| `box_x = col // 3` / `box_y = row // 3` | Finds which 3x3 box the cell belongs to. |
+| box loops | Is `num` already inside that 3x3 box? |
+| `return True` | All three constraints passed, so the value is legal. |
+| `def candidates(board, row, col):` | **Constraint propagation**: builds the list of values still legal for this cell. |
+| `return [num for num in range(1, 10) if is_valid(...)]` | Keeps only the values that pass all constraints. |
+| `def solve(board):` | Recursive backtracking function. |
+| `empty = find_empty(board)` | Chooses the next empty cell. |
+| `if not empty: return True` | Every cell is filled, so the puzzle is solved. |
+| `for num in candidates(board, row, col):` | Tries only legal values. |
+| `board[row][col] = num` | Places the candidate. |
+| `if solve(board): return True` | Recurses; keeps this value if the rest of the board solves. |
+| `board[row][col] = 0` | **Backtrack**: undo the guess. |
+| `return False` | No candidate works, so the caller must backtrack. |
+| `if solve(board): print_board(board)` | Solves the puzzle and prints the result. |
 
 ### Java code
 
 | Code block | Explanation |
 |---|---|
-| `static int[][] board` | The puzzle. `0` = empty. |
-| `static boolean[] candidates(int r, int c)` | Builds a boolean array of values already used. |
-| `used[board[r][i]] = true;` / `used[board[i][c]] = true;` | Marks values used in the row and column. |
-| `int br = (r / 3) * 3, bc = (c / 3) * 3;` | Top-left corner of the 3×3 box. |
-| `used[board[i][j]] = true;` | Marks values used inside the box. |
+| `static int[][] board = {...};` | The puzzle as a 9x9 array; `0` means empty. |
+| `static void printBoard()` | Prints the 9 rows. |
+| `static int[] findEmpty()` | Scans for the first `0`; returns `{row, col}` or `null`. |
+| `static boolean isValid(int num, int row, int col)` | Checks the three Sudoku constraints. |
+| row loop | Is `num` already in this row? |
+| column loop | Is `num` already in this column? |
+| `int boxRow = (row / 3) * 3;` / `int boxCol = (col / 3) * 3;` | Top-left corner of the 3x3 box. |
+| box loops | Is `num` already inside that box? |
+| `return true;` | The value is legal. |
+| `static List<Integer> candidates(int row, int col)` | **Constraint propagation**: collects every legal value for the cell. |
+| `for (int num = 1; num <= 9; num++)` | Checks digits 1 to 9. |
+| `if (isValid(num, row, col)) list.add(num);` | Keeps only legal values. |
 | `static boolean solve()` | Recursive backtracking. |
-| `if (board[r][c] == 0)` | Finds the first empty cell. |
-| `for (int v = 1; v <= 9; v++) if (!used[v])` | Tries only legal values. |
-| `board[r][c] = v; if (solve()) return true;` | Place and recurse. |
-| `board[r][c] = 0;` | Backtrack. |
-| `return false;` | No candidate worked. |
-| `static void show()` | Prints the grid with separators. |
+| `if (empty == null) return true;` | No empty cell, so the puzzle is solved. |
+| `for (int num : candidates(row, col))` | Tries only legal values. |
+| `board[row][col] = num;` | Places the candidate. |
+| `if (solve()) return true;` | Keeps the value if the rest of the board solves. |
+| `board[row][col] = 0;` | **Backtrack**. |
+| `return false;` | No candidate works, so the caller backtracks. |
+| `main(...)` | Prints the puzzle, solves it and prints the solution. |
 
 ## 15. Sample Output
 
+### Python
+
 ```text
-5 3 . . 7 . . . .
-6 . . 1 9 5 . . .
-. 9 8 . . . . 6 .
----------------------
-8 . . . 6 . . . 3
-4 . . 8 . 3 . . 1
-7 . . . 2 . . . 6
----------------------
-. 6 . . . . 2 8 .
-. . . 4 1 9 . . 5
-. . . . 8 . . 7 9
-Solved: True
-5 3 4 6 7 8 9 1 2
-6 7 2 1 9 5 3 4 8
-1 9 8 3 4 2 5 6 7
----------------------
-8 5 9 7 6 1 4 2 3
-4 2 6 8 5 3 7 9 1
-7 1 3 9 2 4 8 5 6
----------------------
-9 6 1 5 3 7 2 8 4
-2 8 7 4 1 9 6 3 5
-3 4 5 2 8 6 1 7 9
+Sudoku Puzzle:
+[5, 3, 0, 0, 7, 0, 0, 0, 0]
+[6, 0, 0, 1, 9, 5, 0, 0, 0]
+[0, 9, 8, 0, 0, 0, 0, 6, 0]
+[8, 0, 0, 0, 6, 0, 0, 0, 3]
+[4, 0, 0, 8, 0, 3, 0, 0, 1]
+[7, 0, 0, 0, 2, 0, 0, 0, 6]
+[0, 6, 0, 0, 0, 0, 2, 8, 0]
+[0, 0, 0, 4, 1, 9, 0, 0, 5]
+[0, 0, 0, 0, 8, 0, 0, 7, 9]
+
+Solved Sudoku:
+[5, 3, 4, 6, 7, 8, 9, 1, 2]
+[6, 7, 2, 1, 9, 5, 3, 4, 8]
+[1, 9, 8, 3, 4, 2, 5, 6, 7]
+[8, 5, 9, 7, 6, 1, 4, 2, 3]
+[4, 2, 6, 8, 5, 3, 7, 9, 1]
+[7, 1, 3, 9, 2, 4, 8, 5, 6]
+[9, 6, 1, 5, 3, 7, 2, 8, 4]
+[2, 8, 7, 4, 1, 9, 6, 3, 5]
+[3, 4, 5, 2, 8, 6, 1, 7, 9]
+```
+
+### Java
+
+```text
+Sudoku Puzzle:
+[5, 3, 0, 0, 7, 0, 0, 0, 0]
+[6, 0, 0, 1, 9, 5, 0, 0, 0]
+[0, 9, 8, 0, 0, 0, 0, 6, 0]
+[8, 0, 0, 0, 6, 0, 0, 0, 3]
+[4, 0, 0, 8, 0, 3, 0, 0, 1]
+[7, 0, 0, 0, 2, 0, 0, 0, 6]
+[0, 6, 0, 0, 0, 0, 2, 8, 0]
+[0, 0, 0, 4, 1, 9, 0, 0, 5]
+[0, 0, 0, 0, 8, 0, 0, 7, 9]
+
+Solved Sudoku:
+[5, 3, 4, 6, 7, 8, 9, 1, 2]
+[6, 7, 2, 1, 9, 5, 3, 4, 8]
+[1, 9, 8, 3, 4, 2, 5, 6, 7]
+[8, 5, 9, 7, 6, 1, 4, 2, 3]
+[4, 2, 6, 8, 5, 3, 7, 9, 1]
+[7, 1, 3, 9, 2, 4, 8, 5, 6]
+[9, 6, 1, 5, 3, 7, 2, 8, 4]
+[2, 8, 7, 4, 1, 9, 6, 3, 5]
+[3, 4, 5, 2, 8, 6, 1, 7, 9]
 ```

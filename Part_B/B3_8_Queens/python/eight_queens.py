@@ -1,38 +1,64 @@
-# B3 - 8-Queens using backtracking
+# Backtracking search for the 8-Queens problem
 
 N = 8
-pos = [-1] * N          # pos[col] = row of the queen
-count = 0
 
 
-def safe(row, col):
-    """Check row and diagonal conflicts with earlier columns."""
-    for c in range(col):
-        if pos[c] == row or abs(pos[c] - row) == col - c:
+def print_board(board):
+    for row in board:
+        print(" ".join("Q" if cell else "." for cell in row))
+    print()
+
+
+def is_safe(board, row, col):
+    # Check left side of current row
+    for i in range(col):
+        if board[row][i]:
             return False
+
+    # Check upper-left diagonal
+    i, j = row, col
+    while i >= 0 and j >= 0:
+        if board[i][j]:
+            return False
+        i -= 1
+        j -= 1
+
+    # Check lower-left diagonal
+    i, j = row, col
+    while i < N and j >= 0:
+        if board[i][j]:
+            return False
+        i += 1
+        j -= 1
+
     return True
 
 
-def solve(col):
-    global count
-    if col == N:                    # all queens placed
-        count += 1
-        if count == 1:
-            show()
-        return
+def solve_queens(board, col):
+    # All queens placed
+    if col >= N:
+        return True
 
     for row in range(N):
-        if safe(row, col):
-            pos[col] = row
-            solve(col + 1)
-            pos[col] = -1           # backtrack
+        if is_safe(board, row, col):
+            # Place queen
+            board[row][col] = 1
+
+            # Recur for next column
+            if solve_queens(board, col + 1):
+                return True
+
+            # Backtrack
+            board[row][col] = 0
+
+    return False
 
 
-def show():
-    print("First solution:")
-    for r in range(N):
-        print(" ".join("Q" if pos[c] == r else "." for c in range(N)))
+# Main program
+board = [[0 for _ in range(N)] for _ in range(N)]
 
-
-solve(0)
-print("Total solutions:", count)
+if solve_queens(board, 0):
+    print("Solution Found:\n")
+    print_board(board)
+else:
+    print("No Solution Exists")

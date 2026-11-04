@@ -1,45 +1,80 @@
-import java.util.Arrays;
-
 public class EightQueens {
-    static final int N = 8;
-    static int[] pos = new int[N];   // pos[col] = row
-    static int count = 0;
 
-    static boolean safe(int row, int col) {
-        for (int c = 0; c < col; c++)
-            if (pos[c] == row || Math.abs(pos[c] - row) == col - c)
+    static final int N = 8;
+    static int[][] board = new int[N][N];
+
+    static void printBoard() {
+        for (int[] row : board) {
+            for (int col = 0; col < N; col++) {
+                System.out.print((col == 0 ? "" : " ") + (row[col] == 1 ? "Q" : "."));
+            }
+            System.out.println();
+        }
+        System.out.println();
+    }
+
+    static boolean isSafe(int row, int col) {
+        // Check left side of current row
+        for (int i = 0; i < col; i++) {
+            if (board[row][i] == 1) {
                 return false;
+            }
+        }
+
+        // Check upper-left diagonal
+        int i = row, j = col;
+        while (i >= 0 && j >= 0) {
+            if (board[i][j] == 1) {
+                return false;
+            }
+            i--;
+            j--;
+        }
+
+        // Check lower-left diagonal
+        i = row;
+        j = col;
+        while (i < N && j >= 0) {
+            if (board[i][j] == 1) {
+                return false;
+            }
+            i++;
+            j--;
+        }
+
         return true;
     }
 
-    static void solve(int col) {
-        if (col == N) {              // all queens placed
-            count++;
-            if (count == 1) show();
-            return;
+    static boolean solveQueens(int col) {
+        // All queens placed
+        if (col >= N) {
+            return true;
         }
 
         for (int row = 0; row < N; row++) {
-            if (safe(row, col)) {
-                pos[col] = row;
-                solve(col + 1);
-                pos[col] = -1;       // backtrack
+            if (isSafe(row, col)) {
+                // Place queen
+                board[row][col] = 1;
+
+                // Recur for next column
+                if (solveQueens(col + 1)) {
+                    return true;
+                }
+
+                // Backtrack
+                board[row][col] = 0;
             }
         }
-    }
 
-    static void show() {
-        System.out.println("First solution:");
-        for (int r = 0; r < N; r++) {
-            for (int c = 0; c < N; c++)
-                System.out.print(pos[c] == r ? "Q " : ". ");
-            System.out.println();
-        }
+        return false;
     }
 
     public static void main(String[] args) {
-        Arrays.fill(pos, -1);
-        solve(0);
-        System.out.println("Total solutions: " + count);
+        if (solveQueens(0)) {
+            System.out.println("Solution Found:\n");
+            printBoard();
+        } else {
+            System.out.println("No Solution Exists");
+        }
     }
 }

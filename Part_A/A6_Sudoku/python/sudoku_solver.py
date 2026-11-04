@@ -1,6 +1,70 @@
-# A6 - Sudoku Solver: backtracking + constraint propagation
+# Sudoku Solver using Backtracking and Constraint Propagation
 
-BOARD = [
+def print_board(board):
+    for row in board:
+        print(row)
+
+
+def find_empty(board):
+    for i in range(9):
+        for j in range(9):
+            if board[i][j] == 0:
+                return (i, j)
+    return None
+
+
+def is_valid(board, num, pos):
+    row, col = pos
+
+    # Check row
+    for j in range(9):
+        if board[row][j] == num and j != col:
+            return False
+
+    # Check column
+    for i in range(9):
+        if board[i][col] == num and i != row:
+            return False
+
+    # Check 3x3 box
+    box_x = col // 3
+    box_y = row // 3
+
+    for i in range(box_y * 3, box_y * 3 + 3):
+        for j in range(box_x * 3, box_x * 3 + 3):
+            if board[i][j] == num and (i, j) != pos:
+                return False
+
+    return True
+
+
+def candidates(board, row, col):
+    # Constraint propagation: only legal numbers for this cell
+    return [num for num in range(1, 10) if is_valid(board, num, (row, col))]
+
+
+def solve(board):
+    empty = find_empty(board)
+
+    if not empty:
+        return True
+
+    row, col = empty
+
+    for num in candidates(board, row, col):
+        board[row][col] = num
+
+        if solve(board):
+            return True
+
+        # Backtrack
+        board[row][col] = 0
+
+    return False
+
+
+# Sudoku Puzzle (0 represents empty cell)
+board = [
     [5, 3, 0, 0, 7, 0, 0, 0, 0],
     [6, 0, 0, 1, 9, 5, 0, 0, 0],
     [0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -12,35 +76,11 @@ BOARD = [
     [0, 0, 0, 0, 8, 0, 0, 7, 9]
 ]
 
-def candidates(r, c):
-    """Values already used in this row, column and 3x3 box."""
-    used = set(BOARD[r]) | {BOARD[i][c] for i in range(9)}
-    br, bc = (r // 3) * 3, (c // 3) * 3
-    used |= {BOARD[i][j] for i in range(br, br + 3)
-             for j in range(bc, bc + 3)}
-    return [v for v in range(1, 10) if v not in used]
+print("Sudoku Puzzle:")
+print_board(board)
 
-
-def solve():
-    for r in range(9):
-        for c in range(9):
-            if BOARD[r][c] == 0:
-                for v in candidates(r, c):
-                    BOARD[r][c] = v
-                    if solve():
-                        return True
-                    BOARD[r][c] = 0     # backtrack
-                return False
-    return True
-
-
-def show():
-    for r in range(9):
-        if r in (3, 6):
-            print("-" * 21)
-        print(" ".join(str(v) if v else "." for v in BOARD[r]))
-
-
-show()
-print("Solved:", solve())
-show()
+if solve(board):
+    print("\nSolved Sudoku:")
+    print_board(board)
+else:
+    print("No solution exists.")

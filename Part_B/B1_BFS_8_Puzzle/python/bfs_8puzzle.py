@@ -1,53 +1,75 @@
-# B1 - BFS for the 8-Puzzle
+# BFS to solve a planning problem (8-Puzzle)
 
 from collections import deque
 
-GOAL = (1, 2, 3, 4, 5, 6, 7, 8, 0)
-START = (1, 3, 6, 5, 0, 2, 4, 7, 8)      # 0 is the blank
+GOAL = [[1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 0]]
+
+START = [[1, 3, 6],
+         [5, 0, 2],
+         [4, 7, 8]]
 
 
-def neighbours(state):
-    """All states reachable by moving one tile into the blank."""
-    blank = state.index(0)
-    r, c = divmod(blank, 3)
-    for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-        nr, nc = r + dr, c + dc
-        if 0 <= nr < 3 and 0 <= nc < 3:
-            i = nr * 3 + nc
-            s = list(state)
-            s[blank], s[i] = s[i], s[blank]
-            yield tuple(s)
+def find_blank(state):
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] == 0:
+                return i, j
+
+
+def state_to_tuple(state):
+    return tuple(tuple(row) for row in state)
+
+
+def get_neighbors(state):
+    neighbors = []
+    x, y = find_blank(state)
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+    for dx, dy in directions:
+        nx, ny = x + dx, y + dy
+
+        if 0 <= nx < 3 and 0 <= ny < 3:
+            new_state = [row[:] for row in state]
+            new_state[x][y], new_state[nx][ny] = new_state[nx][ny], new_state[x][y]
+            neighbors.append(new_state)
+
+    return neighbors
 
 
 def bfs(start):
-    queue = deque([start])
-    parent = {start: None}       # state -> state it came from
-    explored = 0
+    queue = deque([(start, [])])
+    visited = {state_to_tuple(start)}
 
     while queue:
-        state = queue.popleft()  # FIFO = breadth first
-        explored += 1
-        if state == GOAL:
-            path = []
-            while state is not None:
-                path.append(state)
-                state = parent[state]
-            return path[::-1], explored
+        current_state, path = queue.popleft()
 
-        for nxt in neighbours(state):
-            if nxt not in parent:
-                parent[nxt] = state
-                queue.append(nxt)
-    return None, explored
+        if current_state == GOAL:
+            return path + [current_state]
 
+        for neighbor in get_neighbors(current_state):
+            state_tuple = state_to_tuple(neighbor)
 
-def show(state):
-    for i in range(0, 9, 3):
-        print(state[i], state[i + 1], state[i + 2])
+            if state_tuple not in visited:
+                visited.add(state_tuple)
+                queue.append((neighbor, path + [current_state]))
+
+    return None
 
 
-path, explored = bfs(START)
-print("Moves:", len(path) - 1, "| States explored:", explored)
-for step, state in enumerate(path):
-    print("\nStep", step)
-    show(state)
+def print_solution(solution):
+    if solution:
+        print("\nSolution found in", len(solution) - 1, "moves:\n")
+
+        for step, state in enumerate(solution):
+            print("Step", step)
+            for row in state:
+                print(row)
+            print()
+    else:
+        print("No solution found.")
+
+
+solution = bfs(START)
+print_solution(solution)

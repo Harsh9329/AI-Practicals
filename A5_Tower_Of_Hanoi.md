@@ -99,7 +99,7 @@ The smallest disk is on top. The largest disk is at the bottom and can never be 
 
 ## 9. Conclusion
 
-The Tower of Hanoi problem was solved using recursive state-space decomposition. The program correctly generated the sequence of moves for N disks and verified that the minimum number of moves matches the theoretical value of `2^N - 1`.
+The Tower of Hanoi problem was solved using recursion and state-space decomposition. The program correctly generated the sequence of `2^N - 1` moves for N disks, showing that the recursive solution is optimal for the standard three-peg problem.
 
 ## 10. Viva Voce Questions
 
@@ -121,6 +121,8 @@ cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A5_Tower_Of_Hanoi\python"
 python tower_of_hanoi.py
 ```
 
+When prompted, enter the number of disks (for example `3`).
+
 ### Java
 
 ```bash
@@ -132,54 +134,61 @@ java TowerOfHanoi
 ## 12. Python Code
 
 ```python
-# A5 - Tower of Hanoi using recursion (state space search)
+# Tower of Hanoi using State Space Search
 
-moves = 0
-
-
-def hanoi(n, source, helper, target):
-    global moves
-    if n == 1:                              # base case
-        moves += 1
-        print("Move", moves, ": disk 1 from", source, "to", target)
+def tower_of_hanoi(n, source, auxiliary, destination):
+    if n == 1:
+        print(f"Move Disk 1 from {source} -> {destination}")
         return
 
-    hanoi(n - 1, source, target, helper)    # move n-1 disks aside
-    moves += 1
-    print("Move", moves, ": disk", n, "from", source, "to", target)
-    hanoi(n - 1, helper, source, target)    # move them back on top
+    # Move n-1 disks from source to auxiliary
+    tower_of_hanoi(n - 1, source, destination, auxiliary)
+
+    # Move largest disk to destination
+    print(f"Move Disk {n} from {source} -> {destination}")
+
+    # Move n-1 disks from auxiliary to destination
+    tower_of_hanoi(n - 1, auxiliary, source, destination)
 
 
-n = 3
-print("Tower of Hanoi with", n, "disks")
-hanoi(n, "A", "B", "C")
-print("Total moves:", moves, "| Formula 2^n-1 =", 2 ** n - 1)
+# Main Program
+n = int(input("Enter number of disks: "))
+
+print("\nSteps to solve Tower of Hanoi:\n")
+tower_of_hanoi(n, 'A', 'B', 'C')
 ```
 
 ## 13. Java Code
 
 ```java
-public class TowerOfHanoi {
-    static int moves = 0;
+import java.util.Scanner;
 
-    static void hanoi(int n, char source, char helper, char target) {
+public class TowerOfHanoi {
+
+    static void towerOfHanoi(int n, char source, char auxiliary, char destination) {
         if (n == 1) {
-            moves++;
-            System.out.println("Move " + moves + ": disk 1 from " + source + " to " + target);
+            System.out.println("Move Disk 1 from " + source + " -> " + destination);
             return;
         }
-        hanoi(n - 1, source, target, helper);
-        moves++;
-        System.out.println("Move " + moves + ": disk " + n + " from " + source + " to " + target);
-        hanoi(n - 1, helper, source, target);
+
+        // Move n-1 disks from source to auxiliary
+        towerOfHanoi(n - 1, source, destination, auxiliary);
+
+        // Move largest disk to destination
+        System.out.println("Move Disk " + n + " from " + source + " -> " + destination);
+
+        // Move n-1 disks from auxiliary to destination
+        towerOfHanoi(n - 1, auxiliary, source, destination);
     }
 
     public static void main(String[] args) {
-        int n = 3;
-        System.out.println("Tower of Hanoi with " + n + " disks");
-        hanoi(n, 'A', 'B', 'C');
-        System.out.println("Total moves: " + moves
-                + " | Formula 2^n-1 = " + ((int) Math.pow(2, n) - 1));
+        Scanner sc = new Scanner(System.in);
+
+        System.out.print("Enter number of disks: ");
+        int n = sc.nextInt();
+
+        System.out.println("\nSteps to solve Tower of Hanoi:\n");
+        towerOfHanoi(n, 'A', 'B', 'C');
     }
 }
 ```
@@ -190,40 +199,61 @@ public class TowerOfHanoi {
 
 | Code block | Explanation |
 |---|---|
-| `moves = 0` | Global counter for the number of disk moves. |
-| `def hanoi(n, source, helper, target):` | Recursive function: move `n` disks from source to target. |
-| `global moves` | Allows the function to update the counter. |
-| `if n == 1:` | **Base case**: one disk can be moved directly. |
-| `moves += 1` / `print(...)` | Count and print the move. |
-| `hanoi(n - 1, source, target, helper)` | **Step 1**: move the top `n-1` disks out of the way. |
-| `moves += 1` / `print(...)` | **Step 2**: move disk `n` to its final peg. |
-| `hanoi(n - 1, helper, source, target)` | **Step 3**: move the `n-1` disks back on top. |
-| `n = 3` | Number of disks. Change it to test more disks. |
-| `2 ** n - 1` | Theoretical minimum number of moves. |
-| `print(...)` | Shows the total and verifies it against the formula. |
+| `def tower_of_hanoi(n, source, auxiliary, destination):` | Recursive function: move `n` disks from `source` to `destination` using `auxiliary`. |
+| `if n == 1:` | **Base case**: only one disk is left. |
+| `print(f"Move Disk 1 from {source} -> {destination}")` | A single disk can always be moved directly, so print the move. |
+| `return` | Stop this branch of the recursion. |
+| `tower_of_hanoi(n - 1, source, destination, auxiliary)` | **Step 1**: move the top `n-1` disks out of the way, onto the auxiliary peg. |
+| `print(f"Move Disk {n} from {source} -> {destination}")` | **Step 2**: move the largest remaining disk to its final peg. |
+| `tower_of_hanoi(n - 1, auxiliary, source, destination)` | **Step 3**: move the `n-1` disks from the auxiliary peg onto the largest disk. |
+| `n = int(input("Enter number of disks: "))` | Reads the number of disks from the user (3 in the sample run). |
+| `print("\nSteps to solve Tower of Hanoi:\n")` | Prints the heading. |
+| `tower_of_hanoi(n, 'A', 'B', 'C')` | Starts the recursion: all disks on A, destination C, B is auxiliary. |
 
 ### Java code
 
 | Code block | Explanation |
 |---|---|
-| `static int moves = 0;` | Global move counter. |
-| `static void hanoi(int n, char source, char helper, char target)` | Recursive method. |
-| `if (n == 1)` | Base case. |
-| `hanoi(n - 1, source, target, helper);` | Move the top `n-1` disks to the helper peg. |
-| `hanoi(n - 1, helper, source, target);` | Move them from the helper onto the largest disk. |
-| `(int) Math.pow(2, n) - 1` | Computes `2^n - 1` for verification. |
-| `System.out.println(...)` | Prints each move and the final count. |
+| `static void towerOfHanoi(int n, char source, char auxiliary, char destination)` | Recursive method: move `n` disks from source to destination using auxiliary. |
+| `if (n == 1)` | **Base case**: one disk left. |
+| `System.out.println("Move Disk 1 from ...")` | A single disk is moved directly, so print the move. |
+| `return;` | Stop this branch of the recursion. |
+| `towerOfHanoi(n - 1, source, destination, auxiliary);` | **Step 1**: move the top `n-1` disks onto the auxiliary peg. |
+| `System.out.println("Move Disk " + n + " ...");` | **Step 2**: move the largest remaining disk to its final peg. |
+| `towerOfHanoi(n - 1, auxiliary, source, destination);` | **Step 3**: move the `n-1` disks from auxiliary onto the largest disk. |
+| `Scanner sc = new Scanner(System.in);` | Reads input from the keyboard. |
+| `int n = sc.nextInt();` | Number of disks entered by the user (3 in the sample run). |
+| `System.out.println("\nSteps to solve Tower of Hanoi:\n");` | Prints the heading. |
+| `towerOfHanoi(n, 'A', 'B', 'C');` | Starts the recursion with all disks on A. |
 
 ## 15. Sample Output
 
+### Python
+
 ```text
-Tower of Hanoi with 3 disks
-Move 1 : disk 1 from A to C
-Move 2 : disk 2 from A to B
-Move 3 : disk 1 from C to B
-Move 4 : disk 3 from A to C
-Move 5 : disk 1 from B to A
-Move 6 : disk 2 from B to C
-Move 7 : disk 1 from A to C
-Total moves: 7 | Formula 2^n-1 = 7
+Enter number of disks: 3
+Steps to solve Tower of Hanoi:
+
+Move Disk 1 from A -> C
+Move Disk 2 from A -> B
+Move Disk 1 from C -> B
+Move Disk 3 from A -> C
+Move Disk 1 from B -> A
+Move Disk 2 from B -> C
+Move Disk 1 from A -> C
+```
+
+### Java
+
+```text
+Enter number of disks: 3
+Steps to solve Tower of Hanoi:
+
+Move Disk 1 from A -> C
+Move Disk 2 from A -> B
+Move Disk 1 from C -> B
+Move Disk 3 from A -> C
+Move Disk 1 from B -> A
+Move Disk 2 from B -> C
+Move Disk 1 from A -> C
 ```

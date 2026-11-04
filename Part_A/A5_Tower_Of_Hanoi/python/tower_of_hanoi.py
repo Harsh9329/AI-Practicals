@@ -1,22 +1,22 @@
-# A5 - Tower of Hanoi using recursion (state space search)
+# Tower of Hanoi using State Space Search
 
-moves = 0
-
-
-def hanoi(n, source, helper, target):
-    global moves
-    if n == 1:                              # base case
-        moves += 1
-        print("Move", moves, ": disk 1 from", source, "to", target)
+def tower_of_hanoi(n, source, auxiliary, destination):
+    if n == 1:
+        print(f"Move Disk 1 from {source} -> {destination}")
         return
 
-    hanoi(n - 1, source, target, helper)    # move n-1 disks aside
-    moves += 1
-    print("Move", moves, ": disk", n, "from", source, "to", target)
-    hanoi(n - 1, helper, source, target)    # move them back on top
+    # Move n-1 disks from source to auxiliary
+    tower_of_hanoi(n - 1, source, destination, auxiliary)
+
+    # Move largest disk to destination
+    print(f"Move Disk {n} from {source} -> {destination}")
+
+    # Move n-1 disks from auxiliary to destination
+    tower_of_hanoi(n - 1, auxiliary, source, destination)
 
 
-n = 3
-print("Tower of Hanoi with", n, "disks")
-hanoi(n, "A", "B", "C")
-print("Total moves:", moves, "| Formula 2^n-1 =", 2 ** n - 1)
+# Main Program
+n = int(input("Enter number of disks: "))
+
+print("\nSteps to solve Tower of Hanoi:\n")
+tower_of_hanoi(n, 'A', 'B', 'C')
