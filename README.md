@@ -1,7 +1,5 @@
 # AI Practicals — Simple Code + Full Lab Manual Notes
 
-**Location:** `C:\Users\harsh\TE SM\AI-Practicals`
-
 This folder contains only the practicals that are **bold / highlighted** in the AI Lab Manual:
 
 - **Part A (bold):** A1, A2, A5, A6
@@ -95,7 +93,7 @@ python file_name.py
 Example:
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A1_Vacuum_Reflex\python"
+cd Part_A/A1_Vacuum_Reflex/python
 python vacuum_reflex.py
 ```
 
@@ -111,7 +109,7 @@ java FileName
 Example:
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A1_Vacuum_Reflex\java"
+cd Part_A/A1_Vacuum_Reflex/java
 javac VacuumReflex.java
 java VacuumReflex
 ```

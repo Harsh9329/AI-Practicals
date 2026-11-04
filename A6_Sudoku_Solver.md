@@ -120,14 +120,14 @@ A Sudoku solver was implemented using backtracking combined with constraint prop
 ### Python
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A6_Sudoku\python"
+cd Part_A/A6_Sudoku/python
 python sudoku_solver.py
 ```
 
 ### Java
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A6_Sudoku\java"
+cd Part_A/A6_Sudoku/java
 javac SudokuSolver.java
 java SudokuSolver
 ```

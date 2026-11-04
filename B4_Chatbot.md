@@ -109,7 +109,7 @@ A rule-based chatbot was implemented using a predefined set of pattern-response 
 ### Python
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_B\B4_Chatbot\python"
+cd Part_B/B4_Chatbot/python
 python chatbot.py --demo
 ```
 
@@ -122,7 +122,7 @@ python chatbot.py
 ### Java
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_B\B4_Chatbot\java"
+cd Part_B/B4_Chatbot/java
 javac Chatbot.java
 java Chatbot --demo
 ```

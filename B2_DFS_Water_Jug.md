@@ -109,14 +109,14 @@ DFS was implemented using a LIFO stack. It found a valid 4-step solution for the
 ### Python
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_B\B2_DFS_Water_Jug\python"
+cd Part_B/B2_DFS_Water_Jug/python
 python dfs_water_jug.py
 ```
 
 ### Java
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_B\B2_DFS_Water_Jug\java"
+cd Part_B/B2_DFS_Water_Jug/java
 javac DFSWaterJug.java
 java DFSWaterJug
 ```

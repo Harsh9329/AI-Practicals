@@ -103,14 +103,14 @@ BFS was implemented and applied to the 8-puzzle planning problem. Because BFS ex
 ### Python
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_B\B1_BFS_8_Puzzle\python"
+cd Part_B/B1_BFS_8_Puzzle/python
 python bfs_8puzzle.py
 ```
 
 ### Java
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_B\B1_BFS_8_Puzzle\java"
+cd Part_B/B1_BFS_8_Puzzle/java
 javac BFS8Puzzle.java
 java BFS8Puzzle
 ```

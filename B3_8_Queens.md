@@ -104,14 +104,14 @@ Backtracking search was implemented for the 8-Queens problem. The program placed
 ### Python
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_B\B3_8_Queens\python"
+cd Part_B/B3_8_Queens/python
 python eight_queens.py
 ```
 
 ### Java
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_B\B3_8_Queens\java"
+cd Part_B/B3_8_Queens/java
 javac EightQueens.java
 java EightQueens
 ```

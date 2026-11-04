@@ -114,14 +114,14 @@ A model-based intelligent agent was implemented for grid navigation with static 
 ### Python
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A2_Model_Based_Grid\python"
+cd Part_A/A2_Model_Based_Grid/python
 python model_based_agent.py
 ```
 
 ### Java
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A2_Model_Based_Grid\java"
+cd Part_A/A2_Model_Based_Grid/java
 javac ModelBasedAgent.java
 java ModelBasedAgent
 ```

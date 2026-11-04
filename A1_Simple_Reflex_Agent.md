@@ -122,14 +122,14 @@ The simple reflex agent for the Vacuum Cleaner world was designed and implemente
 ### Python
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A1_Vacuum_Reflex\python"
+cd Part_A/A1_Vacuum_Reflex/python
 python vacuum_reflex.py
 ```
 
 ### Java
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A1_Vacuum_Reflex\java"
+cd Part_A/A1_Vacuum_Reflex/java
 javac VacuumReflex.java
 java VacuumReflex
 ```

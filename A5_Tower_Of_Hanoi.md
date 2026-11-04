@@ -117,7 +117,7 @@ The Tower of Hanoi problem was solved using recursion and state-space decomposit
 ### Python
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A5_Tower_Of_Hanoi\python"
+cd Part_A/A5_Tower_Of_Hanoi/python
 python tower_of_hanoi.py
 ```
 
@@ -126,7 +126,7 @@ When prompted, enter the number of disks (for example `3`).
 ### Java
 
 ```bash
-cd "C:\Users\harsh\TE SM\AI-Practicals\Part_A\A5_Tower_Of_Hanoi\java"
+cd Part_A/A5_Tower_Of_Hanoi/java
 javac TowerOfHanoi.java
 java TowerOfHanoi
 ```
